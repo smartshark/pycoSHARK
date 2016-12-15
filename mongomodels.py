@@ -264,7 +264,7 @@ class Tag(Document):
             'name',
             ('name', 'commit_id'),
         ],
-        'shard_key': ('commit_id', ),
+        'shard_key': ('name', 'commit_id'),
     }
 
     # PK: commit_id
@@ -272,6 +272,7 @@ class Tag(Document):
 
     name = StringField(max_length=150, required=True, unique_with=['commit_id'])
     commit_id = ObjectIdField(required=True)
+    vcs_system_id = ObjectIdField(required=True)
     message = StringField()
     tagger_id = ObjectIdField()
     date = DateTimeField()
@@ -366,6 +367,7 @@ class CodeEntityState(Document):
     ce_parent_id = ObjectIdField()
     cg_ids = ListField(ObjectIdField())
     ce_type = StringField()
+    imports = ListField(StringField())
     start_line = IntField()
     end_line = IntField()
     start_column = IntField()
