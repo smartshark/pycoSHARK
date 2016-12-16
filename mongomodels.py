@@ -348,7 +348,6 @@ class TestState(Document):
     error = BooleanField()
 
 
-
 class CodeEntityState(Document):
     meta = {
         'indexes': [
