@@ -1,0 +1,18 @@
+# check if tests succeed
+sudo: required
+language: python
+python:
+  - "3.5"
+
+services:
+  - docker
+
+before_install:
+  - printenv | grep -E '^TRAVIS_' > .env
+  - docker build -t testdocker .
+
+install:
+  - docker run testdocker /bin/sh -c "cd /root/pycoshark; python3.5 setup.py install"
+
+after_success:
+  - docker run --env-file .env testdocker /bin/sh -c "cd /root/pycoshark; make deploy > /dev/null"
