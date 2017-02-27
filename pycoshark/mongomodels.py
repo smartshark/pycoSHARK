@@ -1,5 +1,5 @@
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
-    DictField
+    DictField, DynamicField
 
 
 class Project(Document):
@@ -219,8 +219,8 @@ class Event(Document):
     :property created_at: (:class:`~mongoengine.fields.DateTimeField`)  date when the event was created
     :property status: (:class:`~mongoengine.fields.StringField`) shows, what part of the issue was changed
     :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` document that created the event
-    :property old_value: (:class:`~mongoengine.fields.StringField`) value before the event happened
-    :property new_value: (:class:`~mongoengine.fields.StringField`) value after the event happened
+    :property old_value: (:class:`~mongoengine.fields.DynamicField`) value before the event happened
+    :property new_value: (:class:`~mongoengine.fields.DynamicField`) value after the event happened
 
     """
     meta = {
@@ -241,8 +241,8 @@ class Event(Document):
     status = StringField(max_length=50)
     author_id = ObjectIdField()
 
-    old_value = StringField()
-    new_value = StringField()
+    old_value = DynamicField()
+    new_value = DynamicField()
 
     def __str__(self):
         return "external_id: %s, issue_id: %s, created_at: %s, status: %s, author_id: %s, " \
