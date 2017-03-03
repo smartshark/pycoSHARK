@@ -160,7 +160,6 @@ class Issue(Document):
     """
     meta = {
         'indexes': [
-            'external_id',
             'issue_system_id'
         ],
         'shard_key': ('external_id', 'issue_system_id'),
@@ -226,8 +225,6 @@ class Event(Document):
     meta = {
         'indexes': [
             'issue_id',
-            '#external_id',
-            ('issue_id', '-created_at')
         ],
         'shard_key': ('external_id', 'issue_id'),
     }
@@ -277,8 +274,6 @@ class IssueComment(Document):
     meta = {
         'indexes': [
             'issue_id',
-            '#external_id',
-            ('issue_id', '-created_at')
         ],
         'shard_key': ('external_id', 'issue_id'),
     }
@@ -582,11 +577,11 @@ class CodeEntityState(Document):
     CodeEntityState class.
     Inherits from :class:`mongoengine.Document`.
 
-    Index: commit_id, file_id
+    Index: s_key, commit_id, file_id
 
-    ShardKey: long_name, commit_id, file_id
+    ShardKey: shard_key (sha1 hash of long_name, commit_id, file_id)
 
-
+    :property s_key: (:class:`~mongoengine.fields.StringField`) shard key (sha1 hash of long_name, commit_id and file_id), as they can get too long for the normal shard key
     :property long_name: (:class:`~mongoengine.fields.StringField`) long name of the code entity state (e.g., package1.package2.Class)
     :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
     :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
@@ -606,13 +601,13 @@ class CodeEntityState(Document):
             'commit_id',
             'file_id',
         ],
-        'shard_key': ('long_name', 'commit_id', 'file_id'),
+        'shard_key': 's_key',
     }
 
     # PK: long_name, commit_id, file_id
-    # Shard Key: long_name, commit_id, file_id
-
-    long_name = StringField(required=True, unique_with=['commit_id', 'file_id'])
+    # Shard Key: shard_key
+    s_key = StringField(required=True, unique=True)
+    long_name = StringField(required=True)
     commit_id = ObjectIdField(required=True)
     file_id = ObjectIdField(required=True)
     ce_parent_id = ObjectIdField()
@@ -631,11 +626,11 @@ class CodeGroupState(Document):
     CodeGroupState class.
     Inherits from :class:`mongoengine.Document`.
 
-    Index: commit_id
+    Index: s_key, commit_id
 
-    ShardKey: long_name, commit_id
+    ShardKey: shard_key (sha1 hash of long_name, commit_id)
 
-
+    :property s_key: (:class:`~mongoengine.fields.StringField`) shard key (sha1 hash of long_name, commit_id), as they can get too long for the normal shard key
     :property long_name: (:class:`~mongoengine.fields.StringField`) long name of the code group state (e.g., package1.package2)
     :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
     :property cg_parent_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) :class:`~pycoshark.mongomodels.CodeGroupState` ids which are the parent of this state
@@ -647,13 +642,11 @@ class CodeGroupState(Document):
         'indexes': [
             'commit_id'
         ],
-        'shard_key': ('long_name', 'commit_id'),
+        'shard_key': 's_key',
     }
 
-    # PK: long_name, commit_id
-    # Shard Key: long_name, commit_id
-
-    long_name = StringField(require=True, unique_with=['commit_id'])
+    s_key = StringField(required=True, unique=True)
+    long_name = StringField(require=True)
     commit_id = ObjectIdField(required=True)
     cg_parent_ids = ListField(ObjectIdField())
     cg_type = StringField()
@@ -685,7 +678,7 @@ class CloneInstance(Document):
     meta = {
         'indexes': [
             'commit_id',
-            'file_id',
+            'file_id'
         ],
         'shard_key': ('name', 'commit_id', 'file_id'),
     }
