@@ -537,7 +537,7 @@ class Commit(Document):
 
     vcs_system_id = ObjectIdField(required=True)
     revision_hash = StringField(max_length=50, required=True, unique_with=['vcs_system_id'])
-    branches = ListField(StringField(max_length=500))
+    branches = ListField(StringField(max_length=500), null=True)
     parents = ListField(StringField(max_length=50))
     author_id = ObjectIdField()
     author_date = DateTimeField()
