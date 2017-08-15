@@ -1,5 +1,42 @@
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
-    DictField, DynamicField
+    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField
+
+
+class TravisJob(EmbeddedDocument):
+    state = StringField(max_length=8, required=True)
+    allow_failure = BooleanField(required=True)
+    annotation_desc = ListField(StringField())
+    tags = ListField(StringField())
+    started_at = DateTimeField()
+    finished_at = DateTimeField(required=True)
+    number = StringField(required=True)
+    failed_tests = ListField(StringField())
+    errored_tests = ListField(StringField())
+    test_framework = StringField()
+    tests_run = BooleanField()
+    config = DictField()
+
+
+class TravisBuild(Document):
+    meta = {
+        'indexes': [
+            'number',
+            ('vcs_system_id', 'number'),
+        ],
+        'shard_key': ('vcs_system_id', 'number'),
+    }
+
+    vcs_system_id = ObjectIdField(unique_with=['number'])
+    commit_id = ObjectIdField()
+    state = StringField(max_length=8, required=True)
+    number = IntField(required=True, unique_with=['vcs_system_id'])
+    event_type = StringField(max_length=15, required=True)
+    duration = LongField(default=None)
+    started_at = DateTimeField(default=None)
+    finished_at = DateTimeField(required=True)
+    pr_number = IntField()
+    # config
+    jobs = ListField(EmbeddedDocumentField(TravisJob), default=list)
 
 
 class Project(Document):
