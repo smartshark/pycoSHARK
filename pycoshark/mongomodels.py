@@ -8,7 +8,7 @@ class TravisJob(EmbeddedDocument):
     annotation_desc = ListField(StringField())
     tags = ListField(StringField())
     started_at = DateTimeField()
-    finished_at = DateTimeField(required=True)
+    finished_at = DateTimeField()
     number = StringField(required=True)
     failed_tests = ListField(StringField())
     errored_tests = ListField(StringField())
@@ -33,7 +33,7 @@ class TravisBuild(Document):
     event_type = StringField(max_length=15, required=True)
     duration = LongField(default=None)
     started_at = DateTimeField(default=None)
-    finished_at = DateTimeField(required=True)
+    finished_at = DateTimeField(default=None)
     pr_number = IntField()
     # config
     jobs = ListField(EmbeddedDocumentField(TravisJob), default=list)
