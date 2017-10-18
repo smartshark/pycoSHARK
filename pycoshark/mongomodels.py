@@ -3,18 +3,25 @@ from mongoengine import Document, StringField, ListField, DateTimeField, IntFiel
 
 
 class TravisJob(EmbeddedDocument):
+    number = StringField(required=True)
     state = StringField(max_length=8, required=True)
     allow_failure = BooleanField(required=True)
     annotation_desc = ListField(StringField())
     tags = ListField(StringField())
     started_at = DateTimeField()
     finished_at = DateTimeField()
-    number = StringField(required=True)
     failed_tests = ListField(StringField())
     errored_tests = ListField(StringField())
     test_framework = StringField()
     tests_run = BooleanField()
     config = DictField()
+
+    def __repr__(self):
+        return "<TravisJob number:%s state:%s allow_failure:%s annotation_desc:%s tags:%s started_at:%s " \
+               "finished_at:%s failed_tests:%s errored_tests:%s test_framework:%s test_run:%s config:%s>" % \
+               (self.number, self.state, self.allow_failure, self.annotation_desc, self.tags, self.started_at,
+                self.finished_at, self.failed_tests, self.errored_tests, self.test_framework, self.tests_run,
+                self.config)
 
 
 class TravisBuild(Document):
