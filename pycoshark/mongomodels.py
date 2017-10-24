@@ -645,7 +645,7 @@ class CodeEntityState(Document):
             'commit_id',
             'file_id',
         ],
-        'shard_key': 's_key',
+        'shard_key': ('s_key',)
     }
 
     # PK: long_name, commit_id, file_id
@@ -654,6 +654,7 @@ class CodeEntityState(Document):
     long_name = StringField(required=True)
     commit_id = ObjectIdField(required=True)
     file_id = ObjectIdField(required=True)
+    test_type = DictField()
     ce_parent_id = ObjectIdField()
     cg_ids = ListField(ObjectIdField())
     ce_type = StringField()
@@ -663,6 +664,15 @@ class CodeEntityState(Document):
     start_column = IntField()
     end_column = IntField()
     metrics = DictField()
+
+    def __repr__(self):
+        return "<CodeEntityState s_key:%s long_name:%s commit_id:%s file_id:%s test_type:%s ce_parent_id:%s " \
+               "cg_ids:%s ce_type:%s imports:%s start_line:%s end_line:%s start_column:%s end_column: %s metrics: %s>" % \
+               (self.s_key, self.long_name, self.commit_id, self.file_id, self.test_type, self.ce_parent_id,
+                self.cg_ids, self.ce_type, self.imports, self.start_line, self.end_line, self.start_column,
+                self.end_column, self.metrics)
+
+
 
 
 class CodeGroupState(Document):
@@ -686,7 +696,7 @@ class CodeGroupState(Document):
         'indexes': [
             'commit_id'
         ],
-        'shard_key': 's_key',
+        'shard_key': ('s_key',)
     }
 
     s_key = StringField(required=True, unique=True)
