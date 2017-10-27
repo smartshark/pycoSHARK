@@ -472,7 +472,7 @@ class File(Document):
     # Shard Key: path, vcs_system_id
 
     vcs_system_id = ObjectIdField(required=True)
-    path = StringField(max_length=300, required=True,unique_with=['vcs_system_id'])
+    path = StringField(max_length=300, required=True, unique_with=['vcs_system_id'])
 
 
 class Tag(Document):
@@ -513,7 +513,7 @@ class Tag(Document):
     date = DateTimeField()
     date_offset = IntField()
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         return self.commit_id, self.name == other.commit_id, other.name
 
     def __hash__(self):
@@ -544,12 +544,13 @@ class People(Document):
     username = StringField(max_length=300)
 
     def __hash__(self):
-        return hash(self.name+self.email)
+        return hash(self.name + self.email)
 
 
 class Commit(Document):
     """
     Commit class.
+
     Inherits from :class:`mongoengine.Document`.
 
     Index: vcs_system_id
@@ -567,8 +568,11 @@ class Commit(Document):
     :property committer_date: (:class:`~mongoengine.fields.DateTimeField`)  date of the committed commit
     :property committer_date_offset: (:class:`~mongoengine.fields.IntField`)  offset for the committer date
     :property message: (:class:`~mongoengine.fields.StringField`) message of the commit
+    :property linked_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
+    :property labels: (:class:`~mongoengine.fields.DictField`) dictionary of different labels for this commit
 
     """
+
     meta = {
         'indexes': [
             'vcs_system_id',
@@ -590,9 +594,24 @@ class Commit(Document):
     committer_date = DateTimeField()
     committer_date_offset = IntField()
     message = StringField()
+    linked_issue_ids = ListField(ObjectIdField())
+    labels = DictField()
 
 
 class TestState(Document):
+    """
+    TestState class.
+
+    Inherits from :class:`mongoengine.Document`.
+
+    Index: long_name, commit_id, file_id
+
+    ShardKey: shard_key long_name, commit_id, file_id
+
+    :property long_name: (:class:`~mongoengine.fields.StringField`) long name of the TestState
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
+    :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
+    """
 
     meta = {
         'indexes': [
@@ -671,8 +690,6 @@ class CodeEntityState(Document):
                (self.s_key, self.long_name, self.commit_id, self.file_id, self.test_type, self.ce_parent_id,
                 self.cg_ids, self.ce_type, self.imports, self.start_line, self.end_line, self.start_column,
                 self.end_column, self.metrics)
-
-
 
 
 class CodeGroupState(Document):
