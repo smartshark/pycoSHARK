@@ -2,6 +2,17 @@ from mongoengine import Document, StringField, ListField, DateTimeField, IntFiel
     DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField
 
 
+class Identity(Document):
+    meta = {
+        'indexes': [
+            '#id',
+        ],
+        'shard_key': ('id', ),
+    }
+
+    people = ListField(ObjectIdField())
+
+
 class TravisJob(EmbeddedDocument):
     number = StringField(required=True)
     state = StringField(max_length=8, required=True)
