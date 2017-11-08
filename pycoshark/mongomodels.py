@@ -810,7 +810,7 @@ class MynbouData(Document):
     # Shard Key: name, vcs_system_id
 
     vcs_system_id = ObjectIdField(required=True)
-    name = StringField(required=True, unique_with=['vcs_system_id', 'path_approach', 'bugfix_label', 'metrics_approach'])
+    name = StringField(required=True, unique_with=['vcs_system_id', 'path_approach', 'bugfix_label', 'metric_approach'])
     path_approach = StringField(required=True)
     bugfix_label = StringField(required=True)
     metric_approach = StringField(required=True)
