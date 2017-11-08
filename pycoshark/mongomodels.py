@@ -814,5 +814,5 @@ class MynbouData(Document):
     path_approach = StringField(required=True)
     bugfix_label = StringField(required=True)
     metric_approach = StringField(required=True)
-    file = FileField(required=True)
+    file = FileField()
     last_updated = DateTimeField(default=None)
