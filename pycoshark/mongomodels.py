@@ -1,5 +1,5 @@
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
-    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField
+    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField
 
 
 class Identity(Document):
@@ -778,3 +778,41 @@ class CloneInstance(Document):
     clone_instance_metrics = DictField(required=True)
     clone_class = StringField(required=True)
     clone_class_metrics = DictField(required=True)
+
+
+class MynbouData(Document):
+    """
+    MynbouData
+    Inherits from :class:`mongoengine.Document`.
+
+    Index: vcs_sytem_id
+
+    ShardKey: name, vcs_system_id
+
+
+    :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.VCSSystem` id to which this clone instance belongs
+    :property name: (:class:`~mongoengine.fields.StringField`) identifier of the product, e.g, the version 1.3
+    :property path_approach: (:class:`~mongoengine.fields.StringField`) name of the approach used for detecting the path for labeling
+    :property metric_approach: (:class:`~mongoengine.fields.StringField`) name of the approach used for metric creation and aggregation
+    :property bugfix_label: (:class:`~mongoengine.fields.StringField`) name of the commit label that is used to determine bug-fixing commits.
+    :property file: (:class:`~mongoengine.fields.FileField`) JSON File containing the product.
+    :property last_updated: (:class:`~mongoengine.fields.DateTimeField`) time of creation of this product
+
+    """
+    meta = {
+        'indexes': [
+            'vcs_system_id'
+        ],
+        'shard_key': ('name', 'vcs_system_id'),
+    }
+
+    # PK: name, vcs_system_id, path_approach, bugfix_label, metrics_approach
+    # Shard Key: name, vcs_system_id
+
+    vcs_system_id = ObjectIdField(required=True)
+    name = StringField(required=True, unique_with=['vcs_system_id', 'path_approach', 'bugfix_label', 'metrics_approach'])
+    path_approach = StringField(required=True)
+    bugfix_label = StringField(required=True)
+    metric_approach = StringField(required=True)
+    file = FileField(required=True)
+    last_updated = DateTimeField(default=None)
