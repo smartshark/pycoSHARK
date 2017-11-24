@@ -10,7 +10,7 @@ class Identity(Document):
         'shard_key': ('id', ),
     }
 
-    people = ListField(ObjectIdField())
+    people = ListField(ObjectIdField(), unique=True)
 
 
 class TravisJob(EmbeddedDocument):
