@@ -2,6 +2,26 @@ from mongoengine import Document, StringField, ListField, DateTimeField, IntFiel
     DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField
 
 
+class Refactoring(Document):
+    """
+    Refactoring
+    Inherits from :class:`mongoengine.Document`
+
+    :property ce_state: (:class:`~mongoengine.fields.DictField`) The code entity state of changed enteties in the current commit.
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id in which this refactoring occured
+    :property description: (:class:`~mongoengine.fields.StringField`) The description of the refactoring provided by RefDiff.
+    :property parent_commit_ce_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) The code entity states of changed enteties in the parent commits.
+    :property type: (:class:`~mongoengine.fields.StringField`) Name of the refactoring type.
+    """
+
+    # PK: _id
+    ce_state = DictField()
+    commit_id = ObjectIdField()
+    description = StringField()
+    parent_commit_ce_states = ListField(DictField())
+    type = StringField()
+
+
 class Identity(Document):
     meta = {
         'indexes': [
