@@ -679,6 +679,7 @@ class CodeEntityState(Document):
     :property long_name: (:class:`~mongoengine.fields.StringField`) long name of the code entity state (e.g., package1.package2.Class)
     :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
     :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
+    :property linter: (:class:`~mongoengine.fields.ListField`) of (:class:`~mongoengine.fields.DictField`) refers to warning from linter. Has a line number and a type
     :property ce_parent_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.CodeEntityState` id which is the parent of this state
     :property cg_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.CodeGroupState` ids to which this state belongs
     :property ce_type: (:class:`~mongoengine.fields.StringField`) type of this state (e.g., class)
@@ -704,6 +705,7 @@ class CodeEntityState(Document):
     long_name = StringField(required=True)
     commit_id = ObjectIdField(required=True)
     file_id = ObjectIdField(required=True)
+    linter = ListField(DictField())
     test_type = DictField()
     ce_parent_id = ObjectIdField()
     cg_ids = ListField(ObjectIdField())
