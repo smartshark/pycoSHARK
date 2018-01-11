@@ -34,25 +34,19 @@ class Identity(Document):
 
 
 class TravisJob(EmbeddedDocument):
+    tr_id = None
+    allow_failure = BooleanField(required=True)
     number = StringField(required=True)
     state = StringField(max_length=8, required=True)
-    allow_failure = BooleanField(required=True)
-    annotation_desc = ListField(StringField())
-    tags = ListField(StringField())
     started_at = DateTimeField()
     finished_at = DateTimeField()
-    failed_tests = ListField(StringField())
-    errored_tests = ListField(StringField())
-    test_framework = StringField()
-    tests_run = BooleanField()
-    config = DictField()
+    stages = ListField(StringField())
+    metrics = DictField()
 
     def __repr__(self):
-        return "<TravisJob number:%s state:%s allow_failure:%s annotation_desc:%s tags:%s started_at:%s " \
-               "finished_at:%s failed_tests:%s errored_tests:%s test_framework:%s test_run:%s config:%s>" % \
-               (self.number, self.state, self.allow_failure, self.annotation_desc, self.tags, self.started_at,
-                self.finished_at, self.failed_tests, self.errored_tests, self.test_framework, self.tests_run,
-                self.config)
+        return "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s>" % \
+               (self.allow_failure, self.number, self.state, self.started_at, self.finished_at, self.stages,
+                self.metrics)
 
 
 class TravisBuild(Document):
@@ -64,17 +58,24 @@ class TravisBuild(Document):
         'shard_key': ('vcs_system_id', 'number'),
     }
 
+    tr_id = None
     vcs_system_id = ObjectIdField(unique_with=['number'])
     commit_id = ObjectIdField()
-    state = StringField(max_length=8, required=True)
     number = IntField(required=True, unique_with=['vcs_system_id'])
-    event_type = StringField(max_length=15, required=True)
+    state = StringField(max_length=8, required=True)
     duration = LongField(default=None)
+    event_type = StringField(max_length=15, required=True)
+    pr_number = IntField()
     started_at = DateTimeField(default=None)
     finished_at = DateTimeField(default=None)
-    pr_number = IntField()
-    # config
+    stages = ListField(StringField())
     jobs = ListField(EmbeddedDocumentField(TravisJob), default=list)
+
+    def __repr__(self):
+        return "<TravisBuild vcs_system_id:%s commit_id:%s number:%s duration:%s event_type:%s " \
+               "pr_number:%s started_at:%s finished_at:%s stages:%s jobs:%s>" % \
+               (self.vcs_system_id, self.commit_id, self.number, self.duration, self.event_type, self.pr_number,
+                self.started_at, self.finished_at, self.stages, self.jobs)
 
 
 class Project(Document):
