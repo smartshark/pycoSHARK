@@ -42,11 +42,13 @@ class TravisJob(EmbeddedDocument):
     finished_at = DateTimeField()
     stages = ListField(StringField())
     metrics = DictField()
+    config = DictField()
 
     def __repr__(self):
-        return "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s>" % \
+        return "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s " \
+               "config:%s>" % \
                (self.allow_failure, self.number, self.state, self.started_at, self.finished_at, self.stages,
-                self.metrics)
+                self.metrics, self.config)
 
 
 class TravisBuild(Document):
