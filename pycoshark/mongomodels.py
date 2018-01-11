@@ -34,7 +34,7 @@ class Identity(Document):
 
 
 class TravisJob(EmbeddedDocument):
-    tr_id = None
+    tr_id = IntField(unique=True)
     allow_failure = BooleanField(required=True)
     number = StringField(required=True)
     state = StringField(max_length=8, required=True)
@@ -56,14 +56,15 @@ class TravisBuild(Document):
         'indexes': [
             'number',
             ('vcs_system_id', 'number'),
+            'tr_id'
         ],
-        'shard_key': ('vcs_system_id', 'number'),
+        'shard_key': ('tr_id',),
     }
 
-    tr_id = None
-    vcs_system_id = ObjectIdField(unique_with=['number'])
+    tr_id = IntField(unique=True)
+    vcs_system_id = ObjectIdField()
     commit_id = ObjectIdField()
-    number = IntField(required=True, unique_with=['vcs_system_id'])
+    number = IntField(required=True)
     state = StringField(max_length=8, required=True)
     duration = LongField(default=None)
     event_type = StringField(max_length=15, required=True)
