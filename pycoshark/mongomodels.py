@@ -633,41 +633,60 @@ class Commit(Document):
     labels = DictField()
 
 
+class Mutation(Document):
+    meta = {
+        'shard_key': ('location', 'm_type', 'l_num'),
+    }
+
+    location = StringField(required=True, unique_with=['m_type', 'l_num'])
+    m_type = StringField(required=True)
+    l_num = IntField(required=True)
+    classification = StringField(null=True)
+
+    def __eq__(self, other):
+        return self.m_type, self.location, self.l_num, self.classification == other.m_type, other.location, other.l_num, other.classification
+
+    def __hash__(self):
+        return hash((self.m_type, self.location, self.l_num, self.classification))
+
+
+class MutationResult(EmbeddedDocument):
+    mutation_id = ObjectIdField(required=True)
+    result = StringField(required=True)
+
+
 class TestState(Document):
     """
-    TestState class.
+        TestState class.
 
-    Inherits from :class:`mongoengine.Document`.
+        Inherits from :class:`mongoengine.Document`.
 
-    Index: long_name, commit_id, file_id
+        Index: name, commit_id, file_id
 
-    ShardKey: shard_key long_name, commit_id, file_id
+        ShardKey: shard_key name, commit_id, file_id
 
-    :property long_name: (:class:`~mongoengine.fields.StringField`) long name of the TestState
-    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
-    :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
-    """
+        :property name: (:class:`~mongoengine.fields.StringField`) name of the TestState, e.g. de.ugoe.cs.Class.blub
+        :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
+        :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
+        :property metrics: (:class:`~mongoengine.fields.DictField`) metrics for the test state
+        :property mutations: ((:class:`~mongoengine.fields.ListField` of Mutations) with extra information about mutations
+        """
 
     meta = {
         'indexes': [
             'commit_id',
         ],
-        'shard_key': ('long_name', 'commit_id', 'file_id'),
+        'shard_key': ('name', 'commit_id', 'file_id'),
     }
 
     # PK: long_name, commit_id, file_id
     # Shard Key: long_name, commit_id, file_id
 
-    long_name = StringField(required=True, unique_with=['commit_id', 'file_id'])
-    commit_id = ObjectIdField(required=True)
+    name = StringField(required=True, unique_with=['commit_id', 'file_id'])
     file_id = ObjectIdField(required=True)
-    file_type = StringField()
-    depends_on_ids = ListField(ObjectIdField())
-    direct_imp_ids = ListField(ObjectIdField())
-    mock_cut_dep_ids = ListField(ObjectIdField())
-    mocked_modules_ids = ListField(ObjectIdField())
-    uses_mock = BooleanField()
-    error = BooleanField()
+    commit_id = ObjectIdField(required=True)
+    metrics = DictField()
+    mutation_res = ListField(EmbeddedDocumentField(MutationResult), default=list)
 
 
 class CodeEntityState(Document):
