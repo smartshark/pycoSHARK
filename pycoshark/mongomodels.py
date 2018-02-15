@@ -689,6 +689,37 @@ class TestState(Document):
     mutation_res = ListField(EmbeddedDocumentField(MutationResult), default=list)
 
 
+class CommitChanges(Document):
+    """
+        CommitChanges class.
+
+        Inherits from :class:`mongoengine.Document`.
+
+        Index: old_commit_id, new_commit_id
+
+        ShardKey: id
+
+        :property old_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs (older in revision system)
+        :property new_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs (newer in revision system)
+        :property classification: (:class:`~mongoengine.fields.DictField`) classification for the changes
+        """
+
+    meta = {
+        'indexes': [
+            'old_commit_id',
+            'new_commit_id'
+        ],
+        'shard_key': ('id', ),
+    }
+
+    # PK: old_commit_id, new_commit_id
+    # Shard Key: id
+
+    old_commit_id = ObjectIdField(required=True, unique_with=['new_commit_id'])
+    new_commit_id = ObjectIdField(required=True)
+    classification = DictField()
+
+
 class CodeEntityState(Document):
     """
     CodeEntityState class.
