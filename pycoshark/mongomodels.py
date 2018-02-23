@@ -604,6 +604,7 @@ class Commit(Document):
     :property committer_date_offset: (:class:`~mongoengine.fields.IntField`)  offset for the committer date
     :property message: (:class:`~mongoengine.fields.StringField`) message of the commit
     :property linked_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
+    :property code_entity_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.CodeEntityState` code entity states for this commit
     :property labels: (:class:`~mongoengine.fields.DictField`) dictionary of different labels for this commit
 
     """
@@ -630,6 +631,7 @@ class Commit(Document):
     committer_date_offset = IntField()
     message = StringField()
     linked_issue_ids = ListField(ObjectIdField())
+    code_entity_states = ListField(ObjectIdField())
     labels = DictField()
 
 
