@@ -646,7 +646,7 @@ class Branch(Document):
     ShardKey: name, vcs_system_id
 
     :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.VCSSystem` id to which this branch belongs
-    :property target: (:class:`~mongoengine.fields.StringField`) revision hash for the target of the branch
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) target commit of the branch (last commit on that branch)
     :property name: (:class:`~mongoengine.fields.StringField`) name of the branch
     :property is_origin_head: (:class:`~mongoengine.fields.BooleanField`) if this branch is the default origin branch (usually master)
     """
@@ -662,7 +662,7 @@ class Branch(Document):
     # Shard Key: name, vcs_system_id
 
     vcs_system_id = ObjectIdField(required=True)
-    target = StringField(max_length=50)
+    commit_id = ObjectIdField(required=True)
     name = StringField(max_length=500, required=True, unique_with=['vcs_system_id'])
     is_origin_head = BooleanField(required=True, default=False)
 
