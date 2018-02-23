@@ -635,6 +635,36 @@ class Commit(Document):
     labels = DictField()
 
 
+class Branch(Document):
+    """
+    Branch class.
+
+    Inherits from :class:`mongoengine.Document`.
+
+    Index: vcs_system_id
+
+    ShardKey: name, vcs_system_id
+
+    :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.VCSSystem` id to which this branch belongs
+    :property target: (:class:`~mongoengine.fields.StringField`) revision hash for the target of the branch
+    :property name: (:class:`~mongoengine.fields.StringField`) name of the branch
+    """
+
+    meta = {
+        'indexes': [
+            'vcs_system_id',
+        ],
+        'shard_key': ('name', 'vcs_system_id'),
+    }
+
+    # PK: name, vcs_system_id
+    # Shard Key: name, vcs_system_id
+
+    vcs_system_id = ObjectIdField(required=True)
+    target = StringField(max_length=50)
+    name = StringField(max_length=500, required=True, unique_with=['vcs_system_id'])
+
+
 class Mutation(Document):
     meta = {
         'shard_key': ('location', 'm_type', 'l_num'),
