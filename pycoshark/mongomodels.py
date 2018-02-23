@@ -605,7 +605,7 @@ class Commit(Document):
     :property message: (:class:`~mongoengine.fields.StringField`) message of the commit
     :property linked_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
     :property code_entity_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.CodeEntityState` code entity states for this commit
-    :property labels: (:class:`~mongoengine.fields.DictField`) dictionary of different labels for this commit
+    :property labels: (:class:`~mongoengine.fields.DictField`) dictionary of different labels for this commit, is_bugfix etc.
 
     """
 
