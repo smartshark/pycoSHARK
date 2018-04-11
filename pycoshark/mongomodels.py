@@ -316,20 +316,22 @@ class Event(Document):
     created_at = DateTimeField()
     status = StringField(max_length=50)
     author_id = ObjectIdField()
+    commit_id = ObjectIdField()
 
     old_value = DynamicField()
     new_value = DynamicField()
 
     def __str__(self):
         return "external_id: %s, issue_id: %s, created_at: %s, status: %s, author_id: %s, " \
-               "old_value: %s, new_value: %s" % (
+               "old_value: %s, new_value: %s, commit_id: %s" % (
                     self.external_id,
                     self.issue_id,
                     self.created_at,
                     self.status,
                     self.author_id,
                     self.old_value,
-                    self.new_value
+                    self.new_value,
+                    self.commit_id
                )
 
 
