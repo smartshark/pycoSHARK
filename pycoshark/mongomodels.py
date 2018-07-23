@@ -1,5 +1,5 @@
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
-    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField
+    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField, FloatField
 
 
 class Refactoring(Document):
@@ -688,6 +688,8 @@ class Mutation(Document):
 
 class MutationResult(EmbeddedDocument):
     mutation_id = ObjectIdField(required=True)
+    num_calls = LongField()
+    call_depth = LongField()
     result = StringField(required=True)
 
 
@@ -721,6 +723,7 @@ class TestState(Document):
     name = StringField(required=True, unique_with=['commit_id', 'file_id'])
     file_id = ObjectIdField(required=True)
     commit_id = ObjectIdField(required=True)
+    execution_time = FloatField()
     metrics = DictField()
     mutation_res = ListField(EmbeddedDocumentField(MutationResult), default=list)
 
