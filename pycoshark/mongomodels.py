@@ -402,6 +402,33 @@ class VCSSystem(Document):
     project_id = ObjectIdField(required=True)
     repository_type = StringField(required=True)
     last_updated = DateTimeField()
+    submodules = ListField(ObjectIdField())
+
+class VCSSubmodule(Document):
+    """
+    VCSSubmodule class.
+    Inherits from :class:`mongoengine.Document`
+
+    Index: vcs_system_id
+
+    ShardKey: vcs_system_id
+
+    :property path: (:class:`~mongoengine.fields.StringField`) submodule path relative to the parent repository root
+    :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.VCSSystem` id of this submodule
+    """
+    meta = {
+        'collection': 'vcs_submodule',
+        'indexes': [
+            'vcs_system_id'
+        ],
+        'shard_key': ('vcs_system_id', ),
+    }
+
+    # PK: vcs_system_id
+    # Shard Key: vcs_system_id
+
+    vcs_system_id = ObjectIdField(required=True)
+    path = StringField(required=True)
 
 
 class FileAction(Document):
