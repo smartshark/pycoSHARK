@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 
+from pycoshark.mongomodels import *
 
 def is_authentication_enabled(db_user, db_password):
     if db_user is not None and db_user and db_password is not None and db_password:
@@ -32,13 +33,16 @@ def create_mongodb_uri_string(db_user, db_password, db_hostname, db_port, db_aut
 
 
 def get_code_entity_state_identifier(long_name, commit_id, file_id):
-    concat_string = long_name+str(commit_id)+str(file_id)
-    return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
-
+    """
+    DEPRECATED: use CodeEntityState.calculate_identifier instead
+    """
+    return CodeEntityState.calculate_identifier(long_name, commit_id, file_id)
 
 def get_code_group_state_identifier(long_name, commit_id):
-    concat_string = long_name+str(commit_id)
-    return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
+    """
+    DEPRECATED: use CodeGroupState.calculate_identifier instead
+    """
+    return CodeGroupState.calculate_identifier(long_name, commit_id)
 
 
 def get_base_argparser(description, version):

@@ -1,5 +1,6 @@
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
     DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField, FloatField
+import hashlib
 
 
 class Refactoring(Document):
@@ -817,6 +818,14 @@ class CodeEntityState(Document):
                 self.cg_ids, self.ce_type, self.imports, self.start_line, self.end_line, self.start_column,
                 self.end_column, self.metrics)
 
+    @staticmethod
+    def calculate_identifier(long_name, commit_id, file_id):
+        concat_string = long_name+str(commit_id)+str(file_id)
+        return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
+
+    def identifier(self):
+        return self.calculate_identifier(self.long_name, self.commit_id, self.file_id)
+
 
 class CodeGroupState(Document):
     """
@@ -848,6 +857,14 @@ class CodeGroupState(Document):
     cg_parent_ids = ListField(ObjectIdField())
     cg_type = StringField()
     metrics = DictField()
+
+    @staticmethod
+    def calculate_identifier(long_name, commit_id):
+        concat_string = long_name+str(commit_id)
+        return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
+
+    def identifier(self):
+        return self.calculate_identifier(self.long_name, self.commit_id)
 
 
 class CloneInstance(Document):
