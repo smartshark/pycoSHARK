@@ -19,3 +19,11 @@ script:
 
 after_success:
   - docker run --env-file .env testdocker /bin/sh -c "cd /root/pycoshark; make deploy > /dev/null"
+
+deploy:
+  provider: pypi
+  user: smartshark
+  password:
+    secure: HJyzZ+VT+S8DMzgxBqzzDX1MOwpQ3em6K0ZcGpePFVthwKl3pbJqIfPcXwjXakmowXJYA2T28InvDpDapTbnDFO/M9fwUR6Ac6uMZjIfPn+paJ2QPHkB37VQXF6SiGla+/e/MfClqKCbLZgLQC5gnyQp8C8Y8/ssAwRq/g5JLcv0IdZC3T5gWDFWKHb2wnD9i04MqJRvIKMcWRP4ksrYkqVf9dNAlGFdGC72qVmklPtEDTuveGsmwMQzY5HgfAPLRKZgWpKu99nBt456Op6Tsq7qQxeNL5o18JBgLB8nYpr2BE5caNZrxsF0JrkWljgaR/n4MsQL899qPeJFgZfAlQ6JW8pJSnPu0SlxxBppETGFmoL4PIxdr7lXBxSFVn5NlwDSZJvnGhLECZHLwVOcznyWB0lhQMQCxyBNfxoW4Hg0rcEUZUDRgdgdfaIsnLBEEWess1O62+bDZXjIsy388MoASUBPqZL16zjmDN1pYY/cLAPwfiBtvPlotERwGP1dctHoYExBtDsk53Veio28lzXEnL4dLiXX4H0BdEeegTzpCYcuPL/R4znU+1tKgcXy3AkpOUr1zvI5pVO8WsTpVIjA76hBgYMamZQpP/ouLk9sjCDRg+Sr/uIovoPl+p9GXvE2ooNvcok0lRFhKtJg/naEwoN6liD+tmdRBxqL+r8=
+  on:
+    tags: true
