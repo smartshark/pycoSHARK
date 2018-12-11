@@ -1,5 +1,6 @@
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
     DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField, FloatField
+import hashlib
 
 
 class Refactoring(Document):
@@ -401,6 +402,33 @@ class VCSSystem(Document):
     project_id = ObjectIdField(required=True)
     repository_type = StringField(required=True)
     last_updated = DateTimeField()
+    submodules = ListField(ObjectIdField())
+
+class VCSSubmodule(Document):
+    """
+    VCSSubmodule class.
+    Inherits from :class:`mongoengine.Document`
+
+    Index: vcs_system_id
+
+    ShardKey: vcs_system_id
+
+    :property path: (:class:`~mongoengine.fields.StringField`) submodule path relative to the parent repository root
+    :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.VCSSystem` id of this submodule
+    """
+    meta = {
+        'collection': 'vcs_submodule',
+        'indexes': [
+            'vcs_system_id'
+        ],
+        'shard_key': ('vcs_system_id', ),
+    }
+
+    # PK: vcs_system_id
+    # Shard Key: vcs_system_id
+
+    vcs_system_id = ObjectIdField(required=True)
+    path = StringField(required=True)
 
 
 class FileAction(Document):
@@ -817,6 +845,14 @@ class CodeEntityState(Document):
                 self.cg_ids, self.ce_type, self.imports, self.start_line, self.end_line, self.start_column,
                 self.end_column, self.metrics)
 
+    @staticmethod
+    def calculate_identifier(long_name, commit_id, file_id):
+        concat_string = long_name+str(commit_id)+str(file_id)
+        return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
+
+    def identifier(self):
+        return self.calculate_identifier(self.long_name, self.commit_id, self.file_id)
+
 
 class CodeGroupState(Document):
     """
@@ -848,6 +884,14 @@ class CodeGroupState(Document):
     cg_parent_ids = ListField(ObjectIdField())
     cg_type = StringField()
     metrics = DictField()
+
+    @staticmethod
+    def calculate_identifier(long_name, commit_id):
+        concat_string = long_name+str(commit_id)
+        return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
+
+    def identifier(self):
+        return self.calculate_identifier(self.long_name, self.commit_id)
 
 
 class CloneInstance(Document):
