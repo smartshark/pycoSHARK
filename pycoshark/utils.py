@@ -1,9 +1,9 @@
 import argparse
-import hashlib
 
-from mongoengine import connect, connection, Document
+from mongoengine import connection, Document
 
 from pycoshark.mongomodels import *
+
 
 def is_authentication_enabled(db_user, db_password):
     if db_user is not None and db_user and db_password is not None and db_password:
@@ -33,38 +33,21 @@ def create_mongodb_uri_string(db_user, db_password, db_hostname, db_port, db_aut
 
     return uri
 
-class MongoDBConnection:
-    def __init__(self, hostname, port, user, password,
-        authentication, ssl_enabled, database):
-        self.hostname = hostname
-        self.port = port
-        self.user = user
-        self.password = password
-        self.authentication = authentication
-        self.ssl_enabled = ssl_enabled
-        self.database = database
-        self.uri = create_mongodb_uri_string(
-            user, password, hostname, port, authentication, ssl_enabled)
 
-    def _reset_connection_cache(self):
-        connection._connections = {}
-        connection._connection_settings ={}
-        connection._dbs = {}
-        for document_class in Document.__subclasses__():
-            document_class._collection = None
+def reset_connection_cache():
+    connection._connections = {}
+    connection._connection_settings ={}
+    connection._dbs = {}
+    for document_class in Document.__subclasses__():
+        document_class._collection = None
 
-    def connect(self):
-        connect(self.database, host=self.uri)
-
-    def reconnect(self):
-        self._reset_connection_cache()
-        self.connect()
 
 def get_code_entity_state_identifier(long_name, commit_id, file_id):
     """
     DEPRECATED: use CodeEntityState.calculate_identifier instead
     """
     return CodeEntityState.calculate_identifier(long_name, commit_id, file_id)
+
 
 def get_code_group_state_identifier(long_name, commit_id):
     """
