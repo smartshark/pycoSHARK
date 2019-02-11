@@ -468,6 +468,7 @@ class FileAction(Document):
     file_id = ObjectIdField(required=True)
     commit_id = ObjectIdField(required=True)
     mode = StringField(max_length=1, required=True, choices=MODES)
+    parent_revision_hash = StringField(max_length=50)
     size_at_commit = IntField()
     lines_added = IntField()
     lines_deleted = IntField()
