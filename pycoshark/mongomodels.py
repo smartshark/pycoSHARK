@@ -229,6 +229,8 @@ class Issue(Document):
     :property affects_versions: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`)) list of affected versions by this issue
     :property components: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list, which componenets are affected
     :property labels: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of labels for this issue
+    :property manual_label: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) to manual labels for this issue, contains information about the label and the author
+    :property confirmed_label: (:class:`~mongoengine.fields.StringField`) confirmed label of the issue; source is manual labeling 
     :property resolution: (:class:`~mongoengine.fields.StringField`) resolution for this issue
     :property fix_versions: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of versions on which this issue is fixed
     :property assignee_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` document to which this issue was assigned
@@ -263,6 +265,8 @@ class Issue(Document):
     affects_versions = ListField(StringField())
     components = ListField(StringField())
     labels = ListField(StringField())
+    manual_label = ListField(DictField())
+    confirmed_label = StringField()
     resolution = StringField()
     fix_versions = ListField(StringField())
     assignee_id = ObjectIdField()
