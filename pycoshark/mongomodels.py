@@ -229,7 +229,7 @@ class Issue(Document):
     :property affects_versions: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`)) list of affected versions by this issue
     :property components: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list, which componenets are affected
     :property labels: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of labels for this issue
-    :property issue_type_manual: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) to manual isue types for this issue, contains information about the issue_type and the author
+    :property issue_type_manual: (:class:`~mongoengine.fields.DictField`) for manual issue types for this issue, contains information about the issue_type and the author, the author is the key and the issue_type is the value
     :property issue_type_verified: (:class:`~mongoengine.fields.StringField`) verified issue_type of the issue; source is manual issue types 
     :property resolution: (:class:`~mongoengine.fields.StringField`) resolution for this issue
     :property fix_versions: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of versions on which this issue is fixed
@@ -265,7 +265,7 @@ class Issue(Document):
     affects_versions = ListField(StringField())
     components = ListField(StringField())
     labels = ListField(StringField())
-    issue_type_manual = ListField(DictField())
+    issue_type_manual = DictField()
     issue_type_verified = StringField()
     resolution = StringField()
     fix_versions = ListField(StringField())
