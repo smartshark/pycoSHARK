@@ -452,7 +452,7 @@ class FileAction(Document):
     :property lines_deleted: (:class:`~mongoengine.fields.IntField`)  number of lines deleted
     :property is_binary: (:class:`~mongoengine.fields.BooleanField`)  shows, if file is binary
     :property old_file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id of the old file (if it was moved, none otherwise)
-
+    :property inducig: (:class:`~mongoengine.fields.ListField`) list of :class:`~mongoengine.fields.DictField` contains change_file_action_id, label and lines of the changing commit to the inducing commit in this FileAction.
     """
 
     meta = {
@@ -480,6 +480,8 @@ class FileAction(Document):
 
     # old_file_id is only set, if we detected a copy or move operation
     old_file_id = ObjectIdField()
+
+    induces = ListField(DictField())
 
 
 class Hunk(Document):
