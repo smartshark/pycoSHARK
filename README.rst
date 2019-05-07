@@ -5,6 +5,15 @@ pycoSHARK
 
 Python data collection library for SmartSHARK.
 
+
+Install from Pypi
+--------------
+
+.. code-block:: bash
+
+    $ sudo pip install pycoshark
+
+
 Install latest
 --------------
 
