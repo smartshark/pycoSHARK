@@ -643,7 +643,9 @@ class Commit(Document):
     :property linked_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
     :property code_entity_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`))  :class:`~pycoshark.mongomodels.CodeEntityState` code entity states for this commit
     :property labels: (:class:`~mongoengine.fields.DictField`) dictionary of different labels for this commit, is_bugfix etc.
-
+    :property validations: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of different validations on this commit
+    :property fixed_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
+  
     """
 
     meta = {
@@ -670,6 +672,8 @@ class Commit(Document):
     linked_issue_ids = ListField(ObjectIdField())
     code_entity_states = ListField(ObjectIdField())
     labels = DictField()
+    validations = ListField(StringField(max_length=50))
+    fixed_issue_ids = ListField(ObjectIdField())
 
 
 class Branch(Document):
