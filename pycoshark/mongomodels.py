@@ -675,6 +675,7 @@ class Commit(Document):
     labels = DictField()
     validations = ListField(StringField(max_length=50))
     fixed_issue_ids = ListField(ObjectIdField())
+    szz_issue_ids = ListField(ObjectIdField())
 
 
 class Branch(Document):
