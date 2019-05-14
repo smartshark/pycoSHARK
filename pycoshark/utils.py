@@ -69,3 +69,30 @@ def get_base_argparser(description, version):
     parser.add_argument('--ssl', help='Enables SSL', default=False, action='store_true')
 
     return parser
+
+
+_WONT_FIX_TYPES = {'not a bug', "won't do", "won't fix", 'duplicate', 'cannot reproduce', 'not a problem',
+                   'works for me', 'invalid'}
+_RESOLVED_TYPES = {'delivered', 'resolved', 'fixed', 'workaround', 'done', 'implemented', 'auto closed'}
+_CLOSED_STATUS = {'resolved', 'closed'}
+
+
+def jira_is_resolved_and_fixed(issue):
+    """
+    checks if an JIRA issue was addressed (at least once)
+    :param issue: the issue
+    :return: true if there was a time when the issue was closed and the status was resolved as fixed (or similar),
+    false otherwise
+    """
+    if issue.resolution and issue.resolution.lower() in _WONT_FIX_TYPES:
+        return False
+    current_status = None
+    current_resolution = None
+    for e in Event.objects(issue_id=issue.id).order_by('created_at'):
+        if e.status is not None and e.status.lower()=='status' and e.new_value is not None:
+            current_status = e.new_value.lower()
+        if e.status is not None and e.status.lower() == 'resolution' and e.new_value is not None:
+            current_resolution = e.new_value.lower()
+        if current_status in _CLOSED_STATUS and current_resolution in _RESOLVED_TYPES:
+            return True
+    return False
