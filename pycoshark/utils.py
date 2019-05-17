@@ -84,11 +84,17 @@ def jira_is_resolved_and_fixed(issue):
     :return: true if there was a time when the issue was closed and the status was resolved as fixed (or similar),
     false otherwise
     """
+    # first we check if the issue itself contains information about its state
     if issue.resolution and issue.resolution.lower() in _WONT_FIX_TYPES:
         return False
+    if issue.resolution and issue.resolution.lower() in _RESOLVED_TYPES and issue.status and issue.status.lower() in _CLOSED_STATUS:
+        return True
+
+    # then we check all events related to the issue
     current_status = None
     current_resolution = None
     for e in Event.objects(issue_id=issue.id).order_by('created_at'):
+        print(current_status, current_resolution)
         if e.status is not None and e.status.lower()=='status' and e.new_value is not None:
             current_status = e.new_value.lower()
         if e.status is not None and e.status.lower() == 'resolution' and e.new_value is not None:
