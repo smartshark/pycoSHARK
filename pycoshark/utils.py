@@ -94,7 +94,6 @@ def jira_is_resolved_and_fixed(issue):
     current_status = None
     current_resolution = None
     for e in Event.objects(issue_id=issue.id).order_by('created_at'):
-        print(current_status, current_resolution)
         if e.status is not None and e.status.lower()=='status' and e.new_value is not None:
             current_status = e.new_value.lower()
         if e.status is not None and e.status.lower() == 'resolution' and e.new_value is not None:
