@@ -131,44 +131,29 @@ _GIT_TAG_QUALIFIERS = ['rc', 'alpha', 'beta', 'b', 'm', 'r']
 # separators are expected to divide 2 or more numbers
 _TAG_VERSION_SEPARATORS = ['.', '_', '-']
 
+# separators are expected to divide 2 or more numbers
+_TAG_VERSION_SEPARATORS = ['.', '_', '-']
 
-def git_tag_filter(project_name, discard_qualifiers=True, discard_patch=False):
+
+def git_tag_filter(project_name, discard_patch=False):
     """
     Filters all tags of a project to only include those that are likely versions of releases. The version of the
     release is determined using pattern matching with the possible version separators ., _, and -. The version is
     returned in a SemVer style, i.e., always with three numbers for major, minor, and patch.
     :param project_name: name of the project
-    :param discard_qualifiers: discard all tags that contain release qualifiers, e.g., RC, M, alpha, beta, b, M, r
     :param discard_patch: only keep major releases, i.e., discard patch releases
     :return: List of dicts with the filtered tags. The dict contains the entries 'version' with the SemVer version of
     we determined for the tag, 'original' with the name of the tag, 'revision' with the revision hash of the commit that
     is tagged, and 'qualifiers' if there are any.
     """
-    versions = []
-
+    initial_versions = []
     project_id = Project.objects(name=project_name).get().id
     vcs_system_id = VCSSystem.objects(project_id=project_id).get().id
     for tag in Tag.objects(vcs_system_id=vcs_system_id):
-        tag_name = tag.name
+        filtered_name = re.sub(project_name.lower(), '', tag.name.lower())
 
-        filtered_name = re.sub(project_name.lower(), '', tag_name.lower())
-
-        qualifier = ''
-        remove_qualifier = ''
-        for tag_qualifier in _GIT_TAG_QUALIFIERS:
-            if tag_qualifier in filtered_name.lower():
-                tmp = filtered_name.split(tag_qualifier)
-                if tmp[-1].isnumeric():
-                    qualifier = [tag_qualifier, tmp[-1]]
-                    remove_qualifier = ''.join(qualifier)
-                    break
-                else:
-                    qualifier = [tag_qualifier]
-                    remove_qualifier = tag_qualifier
-                    break
-        # if we have a qualifier we remove it before we check for best number seperator
-        if qualifier:
-            filtered_name = filtered_name.split(remove_qualifier)[0]
+        if re.search(_GIT_TAG_QUALIFIERS, filtered_name, re.MULTILINE | re.IGNORECASE):
+            continue
 
         # we only want numbers and separators
         version = re.sub('[a-z]', '', filtered_name)
@@ -199,22 +184,11 @@ def git_tag_filter(project_name, discard_qualifiers=True, discard_patch=False):
             if len(final_version) == 2:
                 final_version.append(0)
             commit = Commit.objects(id=tag.commit_id).only('revision_hash').get()
-            fversion = {'version': final_version, 'original': tag_name, 'revision': commit.revision_hash}
-            if qualifier:
-                fversion['qualifier'] = qualifier
-            versions.append(fversion)
-
-    if discard_qualifiers:
-        filtered_versions = []
-        for version in versions:
-            if 'qualifier' in version.keys():
-                continue
-            filtered_versions.append(version)
-    else:
-        filtered_versions = versions
+            fversion = {'version': final_version, 'original': tag.name, 'revision': commit.revision_hash}
+            initial_versions.append(fversion)
 
     # sort versions using version numbers based on the SemVer scheme
-    sorted_versions = sorted(filtered_versions, key=lambda x: (x['version'][0], x['version'][1], x['version'][2]))
+    sorted_versions = sorted(initial_versions, key=lambda x: (x['version'][0], x['version'][1], x['version'][2]))
 
     # finally make sorted versions unique and discard patch releases
     ret = []
@@ -223,9 +197,32 @@ def git_tag_filter(project_name, discard_qualifiers=True, discard_patch=False):
         if discard_patch:
             if len(version['version']) > 2:
                 del version['version'][2:]
-
         # we discard duplicates; the sorting ensures that we only keep the oldest release in case we ignore patches
         if version['version'] not in [v2['version'] for v2 in ret]:
             ret.append(version)
 
     return ret
+
+
+def get_affected_versions(issue, project_name='', jira_key=''):
+    """
+    Determines a list of the affected versions as a list of SemVer versions. Only considers releases.
+    :param issue: issue for which the affected versions are determined
+    :param project_name: name of the project; can be provided to increase sensitivity of the approach
+    :param jira_key: Jira key of the project; can be provided to increase sensitivity of the approach
+    :return: list of lists of version numbers
+    """
+    versions = []
+    if issue.affects_versions:
+        for av in issue.affects_versions:
+            av = av.lower()
+            if av.startswith('v'):
+                av = av[1:]
+            av = av.replace(project_name,'')
+            av = av.replace(jira_key, '')
+            av = av.replace('.x', '')
+            av = av.replace('release', '')
+            av = av.strip()
+            if all(v.isnumeric() for v in av.split('.')):
+                versions.append(av.split('.'))
+    return versions
