@@ -125,11 +125,8 @@ def java_filename_filter(filename, production_only=True):
 
 # qualifiers are expected at the end of the tag and they may have a number attached
 # it is very important for the b to be at the end otherwise beta would already be matched!
-_GIT_TAG_QUALIFIERS = ['rc', 'alpha', 'beta', 'b', 'm', 'r']
+_GIT_TAG_QUALIFIERS = r"[^a-z]((rc)|(alpha)|(beta)|(b)|(m)|(r))[^a-z]"
 
-
-# separators are expected to divide 2 or more numbers
-_TAG_VERSION_SEPARATORS = ['.', '_', '-']
 
 # separators are expected to divide 2 or more numbers
 _TAG_VERSION_SEPARATORS = ['.', '_', '-']
