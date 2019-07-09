@@ -132,13 +132,15 @@ _GIT_TAG_QUALIFIERS = r"[^a-z]((rc)|(alpha)|(beta)|(b)|(m)|(r))([^a-z]|$)"
 _TAG_VERSION_SEPARATORS = ['.', '_', '-']
 
 
-def git_tag_filter(project_name, discard_patch=False):
+def git_tag_filter(project_name, discard_patch=False, discard_broken_dates=True):
     """
     Filters all tags of a project to only include those that are likely versions of releases. The version of the
     release is determined using pattern matching with the possible version separators ., _, and -. The version is
     returned in a SemVer style, i.e., always with three numbers for major, minor, and patch.
     :param project_name: name of the project
     :param discard_patch: only keep major releases, i.e., discard patch releases
+    :param discard_broken_dates: sanity check for multiple tags on the exact same date, usually due to broken tags in an
+    svn that was imported.
     :return: List of dicts with the filtered tags. The dict contains the entries 'version' with the SemVer version of
     we determined for the tag, 'original' with the name of the tag, 'revision' with the revision hash of the commit that
     is tagged, and 'qualifiers' if there are any.
@@ -146,7 +148,23 @@ def git_tag_filter(project_name, discard_patch=False):
     initial_versions = []
     project_id = Project.objects(name=project_name).get().id
     vcs_system_id = VCSSystem.objects(project_id=project_id).get().id
+    if discard_broken_dates:
+        tag_dates = {}
+        tag_commits = set()
+        for tag in Tag.objects(vcs_system_id=vcs_system_id):
+            tag_commits.add(Commit.objects(id=tag.commit_id).only('committer_date').get())
+        for tag_commit in tag_commits:
+            if tag_commit.committer_date in tag_dates:
+                tag_dates[tag_commit.committer_date] += 1
+            else:
+                tag_dates[tag_commit.committer_date] = 1
+
     for tag in Tag.objects(vcs_system_id=vcs_system_id):
+        if discard_broken_dates:
+            tag_commit = Commit.objects(id=tag.commit_id).only('committer_date').get()
+            if tag_dates[tag_commit.committer_date] > 1:
+                continue
+
         filtered_name = re.sub(project_name.lower(), '', tag.name.lower())
 
         if re.search(_GIT_TAG_QUALIFIERS, filtered_name, re.MULTILINE | re.IGNORECASE):
