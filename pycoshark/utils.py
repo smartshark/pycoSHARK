@@ -2,6 +2,7 @@ import argparse
 import re
 
 from mongoengine import connection, Document
+from dateutil.relativedelta import relativedelta
 
 from pycoshark.mongomodels import *
 
@@ -125,30 +126,36 @@ def java_filename_filter(filename, production_only=True):
 
 # qualifiers are expected at the end of the tag and they may have a number attached
 # it is very important for the b to be at the end otherwise beta would already be matched!
-_GIT_TAG_QUALIFIERS = r"[^a-z]((rc)|(alpha)|(beta)|(b)|(m)|(r)|(broken))([^a-z]|$)"
+_GIT_TAG_QUALIFIERS = r"[^a-z]((rc)|(alpha)|(beta)|(b)|(m)|(r)|(broken)|(DEV_STYLE)|(COPY)|(mysql_auth)|(hbase0\.98)|(release-test-00001)|(t1)|(t2)|(t3))([^a-z]|$)"
 
 
 # separators are expected to divide 2 or more numbers
 _TAG_VERSION_SEPARATORS = ['.', '_', '-']
 
 
-def git_tag_filter(project_name, discard_patch=False, discard_broken_dates=True):
+# manual corrections of known broken tags that cannot be heuristically identified
+_MANUAL_CORRECTIONS = {'COMMONS_JEXL_2_0': 'b9dc71c16461ce497e7ba4b2439983c4d756f0af'}
+
+
+def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, date_tolerance=3, max_steps=2):
     """
     Filters all tags of a project to only include those that are likely versions of releases. The version of the
     release is determined using pattern matching with the possible version separators ., _, and -. The version is
     returned in a SemVer style, i.e., always with three numbers for major, minor, and patch.
     :param project_name: name of the project
     :param discard_patch: only keep major releases, i.e., discard patch releases
-    :param discard_broken_dates: sanity check for multiple tags on the exact same date, usually due to broken tags in an
-    svn that was imported.
+    :param correct_broken_tags Corrects the date of broken tags by looking at the parent commits. A tag is considered
+    broken if there are multiple tags at the exact same time.
+    :param date_tolerance time difference that is considered as "same" while looking for a parent in minutes
+    :param max_steps depth of prior parent commits that are considered when looking for parents
     :return: List of dicts with the filtered tags. The dict contains the entries 'version' with the SemVer version of
     we determined for the tag, 'original' with the name of the tag, 'revision' with the revision hash of the commit that
-    is tagged, and 'qualifiers' if there are any.
+    is tagged, 'corrected_revision' if a broken tag was found, and 'qualifiers' if there are any.
     """
     initial_versions = []
     project_id = Project.objects(name=project_name).get().id
     vcs_system_id = VCSSystem.objects(project_id=project_id).get().id
-    if discard_broken_dates:
+    if correct_broken_tags:
         tag_dates = {}
         tag_commits = set()
         for tag in Tag.objects(vcs_system_id=vcs_system_id):
@@ -160,10 +167,37 @@ def git_tag_filter(project_name, discard_patch=False, discard_broken_dates=True)
                 tag_dates[tag_commit.committer_date] = 1
 
     for tag in Tag.objects(vcs_system_id=vcs_system_id):
-        if discard_broken_dates:
-            tag_commit = Commit.objects(id=tag.commit_id).only('committer_date').get()
-            if tag_dates[tag_commit.committer_date] > 1:
-                continue
+        if tag.name.startswith("J_"):
+            continue
+        corrected_commit = None
+        if correct_broken_tags:
+            if tag.name in _MANUAL_CORRECTIONS:
+                corrected_commit = Commit.objects(revision_hash=_MANUAL_CORRECTIONS[tag.name]).only(
+                    'revision_hash').get()
+            else:
+                tag_commit = Commit.objects(id=tag.commit_id).only('committer_date', 'parents').get()
+                if tag_dates[tag_commit.committer_date] > 1:
+                    tolerated_date = tag_commit.committer_date - relativedelta(minutes=date_tolerance)
+                    # simple breadth first search for correct commit
+                    steps = 0
+                    parents = {}
+                    parents[0] = set(tag_commit.parents)
+                    while corrected_commit is None and steps < max_steps:
+                        if steps in parents:
+                            for parent in parents[steps]:
+                                parent_commit = Commit.objects(revision_hash=parent).only('committer_date', 'parents',
+                                                                                          'revision_hash').get()
+                                if parent_commit.committer_date < tolerated_date:
+                                    corrected_commit = parent_commit
+                                else:
+                                    if steps + 1 not in parents:
+                                        parents[steps + 1] = set(parent_commit.parents)
+                                    else:
+                                        for p in parent_commit.parents:
+                                            parents[steps + 1].add(p)
+                        steps += 1
+                    if corrected_commit is None:
+                        continue
 
         filtered_name = re.sub(project_name.lower(), '', tag.name.lower())
 
@@ -200,6 +234,8 @@ def git_tag_filter(project_name, discard_patch=False, discard_broken_dates=True)
                 final_version.append(0)
             commit = Commit.objects(id=tag.commit_id).only('revision_hash').get()
             fversion = {'version': final_version, 'original': tag.name, 'revision': commit.revision_hash}
+            if corrected_commit is not None:
+                fversion['corrected_revision'] = corrected_commit.revision_hash
             initial_versions.append(fversion)
 
     # sort versions using version numbers based on the SemVer scheme
