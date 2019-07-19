@@ -2,3 +2,4 @@ mongoengine
 pymongo
 python-dateutil
 python-Levenshtein
+networkx
