@@ -296,7 +296,7 @@ def get_commit_graph(vcs_system_id, silent=True):
     for c in Commit.objects(vcs_system_id=vcs_system_id).only('id', 'parents', 'revision_hash').timeout(False):
         for p in c.parents:
             try:
-                p1 = Commit.objects(vcs_system_id=vcs_system_id,revision_hash=p).only('id', 'revision_hash').timeout(False)
+                p1 = Commit.objects(vcs_system_id=vcs_system_id,revision_hash=p).only('id', 'revision_hash').get()
                 g.add_edge(p1.revision_hash, c.revision_hash)
             except Commit.DoesNotExist:
                 if not silent:
