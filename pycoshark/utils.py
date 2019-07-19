@@ -1,8 +1,11 @@
 import argparse
 import re
 
+import networkx as nx
+
 from mongoengine import connection, Document
 from dateutil.relativedelta import relativedelta
+from Levenshtein import distance
 
 from pycoshark.mongomodels import *
 
@@ -126,7 +129,7 @@ def java_filename_filter(filename, production_only=True):
 
 # qualifiers are expected at the end of the tag and they may have a number attached
 # it is very important for the b to be at the end otherwise beta would already be matched!
-_GIT_TAG_QUALIFIERS = r"[^a-z]((rc)|(alpha)|(beta)|(b)|(m)|(r)|(broken)|(DEV_STYLE)|(COPY)|(mysql_auth)|(hbase0\.98)|(release-test-00001)|(t1)|(t2)|(t3))([^a-z]|$)"
+_GIT_TAG_QUALIFIERS = r"[^a-z]((rc)|(alpha)|(beta)|(b)|(m)|(r)|(broken)|(DEV_STYLE)|(COPY)|(mysql_auth)|(hbase0\.98)|(release-test-00001)|(t1)|(t2)|(t3)|(branch))([^a-z]|$)"
 
 
 # separators are expected to divide 2 or more numbers
@@ -277,3 +280,72 @@ def get_affected_versions(issue, project_name='', jira_key=''):
             if all(v.isnumeric() for v in av.split('.')):
                 versions.append(av.split('.'))
     return versions
+
+
+def get_commit_graph(vcs_system_id, silent=True):
+    """Load NetworkX digraph structure from commits of this VCS.
+    :param vcs_system_id id of the vcs system for which the graph is created
+    :param silent determines whether there is an output to stdout in case of a missing parent commit
+    """
+    g = nx.DiGraph()
+    # first we add all nodes to the graph
+    for c in Commit.objects(vcs_system_id=vcs_system_id).only('id', 'revision_hash').timeout(False):
+        g.add_node(c.revision_hash)
+
+    # after that we draw all edges
+    for c in Commit.objects(vcs_system_id=vcs_system_id).only('id', 'parents', 'revision_hash').timeout(False):
+        for p in c.parents:
+            try:
+                p1 = Commit.objects(vcs_system_id=vcs_system_id,revision_hash=p).only('id', 'revision_hash').timeout(False)
+                g.add_edge(p1.revision_hash, c.revision_hash)
+            except Commit.DoesNotExist:
+                if not silent:
+                    print("parent of a commit is missing (commit id: {} - revision_hash: {})".format(c.id, p))
+    return g
+
+
+def heuristic_renames(vcs_system_id, revision_hash):
+    """Return most probable rename from all FileActions, rest count as DEL/NEW.
+    There may be multiple renames of the same file in the same commit, e.g., A->B, A->C.
+    This is due to pygit2 and the Git heuristic for rename detection.
+    This function uses another heuristic to detect renames by employing a string distance metric on the file name.
+    This captures things like commons-math renames org.apache.math -> org.apache.math3.
+    :param vcs_system_id vcs system of the commit
+    :param revision_hash revision has of the commit for which the renames are determined
+    :return Tuple of renames and added files. The renames are a list of tuples, where the first element in the tuple is
+    the old name and the second element is the new name. The added files are a list.
+    """
+    renames = {}
+    commit = Commit.objects(vcs_system_id=vcs_system_id, revision_hash=revision_hash).only('id').get()
+    for fa in FileAction.objects(commit_id=commit.id, mode='R'):
+        new_file = File.objects.get(id=fa.file_id)
+        old_file = File.objects.get(id=fa.old_file_id)
+
+        if old_file.path not in renames.keys():
+            renames[old_file.path] = []
+        renames[old_file.path].append(new_file.path)
+
+    true_renames = []
+    added_files = []
+    for old_file, new_files in renames.items():
+
+        # only one file, easy
+        if len(new_files) == 1:
+            true_renames.append((old_file, new_files[0]))
+            continue
+
+        # multiple files, find the best matching
+        min_dist = float('inf')
+        probable_file = None
+        for new_file in new_files:
+            d = distance(old_file, new_file)
+            if d < min_dist:
+                min_dist = d
+                probable_file = new_file
+        true_renames.append((old_file, probable_file))
+
+        for new_file in new_files:
+            if new_file == probable_file:
+                continue
+            added_files.append(new_file)
+        return true_renames, added_files
