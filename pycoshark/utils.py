@@ -107,6 +107,12 @@ def jira_is_resolved_and_fixed(issue):
             return True
     return False
 
+
+TEST_FILES = re.compile(r'(^|\/)(test|tests|test_long_running|testing|legacy-tests|testdata|test-framework|derbyTesting|unitTests|java\/stubs|test-lib|src\/it|src-lib-test|src-test|tests-src|test-cactus|test-data|test-deprecated|src_unitTests|test-tools)\/', re.IGNORECASE)
+DOCUMENTATION_FILES = re.compile(r'(^|\/)(doc|docs|example|examples|sample|samples|demo|tutorial|helloworld|userguide|showcase|SafeDemo)\/', re.IGNORECASE)
+OTHER_EXCLUSIONS = re.compile(r'(^|\/)(_site|auxiliary-builds|gen-java|external)\/', re.IGNORECASE)
+
+
 def java_filename_filter(filename, production_only=True):
     """
     cheks if a file is a java file
@@ -118,12 +124,9 @@ def java_filename_filter(filename, production_only=True):
            not filename.endswith('package-info.java')
     if production_only:
         ret = ret and \
-              "/test/" not in filename and \
-              "/example/" not in filename and \
-              "/examples/" not in filename and \
-              not filename.startswith("test/") and \
-              not filename.startswith("example/") and \
-              not filename.startswith("examples/")
+              not re.search(TEST_FILES, filename) and \
+              not re.search(DOCUMENTATION_FILES, filename) and \
+              not re.search(OTHER_EXCLUSIONS, filename)
     return ret
 
 
