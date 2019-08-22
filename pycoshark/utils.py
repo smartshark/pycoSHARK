@@ -351,4 +351,4 @@ def heuristic_renames(vcs_system_id, revision_hash):
             if new_file == probable_file:
                 continue
             added_files.append(new_file)
-        return true_renames, added_files
+    return true_renames, added_files
