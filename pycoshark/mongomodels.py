@@ -231,7 +231,6 @@ class Issue(Document):
     :property labels: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of labels for this issue
     :property issue_type_manual: (:class:`~mongoengine.fields.DictField`) for manual issue types for this issue, contains information about the issue_type and the author, the author is the key and the issue_type is the value
     :property issue_type_verified: (:class:`~mongoengine.fields.StringField`) verified issue_type of the issue; source is manual issue types 
-    :property issue_type_verified_kherzig: (:class:`~mongoengine.fields.StringField`) verified issue_type of the issue by Kim Herzig et al.
     :property resolution: (:class:`~mongoengine.fields.StringField`) resolution for this issue
     :property fix_versions: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of versions on which this issue is fixed
     :property assignee_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` document to which this issue was assigned
@@ -268,7 +267,6 @@ class Issue(Document):
     labels = ListField(StringField())
     issue_type_manual = DictField()
     issue_type_verified = StringField()
-    issue_type_verified_kherzig = StringField()
     resolution = StringField()
     fix_versions = ListField(StringField())
     assignee_id = ObjectIdField()
