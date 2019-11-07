@@ -407,6 +407,7 @@ class VCSSystem(Document):
     repository_type = StringField(required=True)
     last_updated = DateTimeField()
     submodules = ListField(ObjectIdField())
+    repository_file = FileField(collection_name='repository_data')
 
 class VCSSubmodule(Document):
     """
