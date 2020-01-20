@@ -13,6 +13,8 @@ class Refactoring(Document):
     :property description: (:class:`~mongoengine.fields.StringField`) The description of the refactoring provided by RefDiff.
     :property parent_commit_ce_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) The code entity states of changed enteties in the parent commits.
     :property type: (:class:`~mongoengine.fields.StringField`) Name of the refactoring type.
+    :property detection_tool: (:class:`~mongoengine.fields.StringField`) The refactoring detection tool, e.g., refdiff or rminer.
+    :property hunks: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) The hunks that were detected.
     """
 
     # PK: _id
@@ -21,6 +23,8 @@ class Refactoring(Document):
     description = StringField()
     parent_commit_ce_states = ListField(DictField())
     type = StringField()
+    detection_tool = StringField()
+    hunks = ListField(DictField())
 
 
 class Identity(Document):
