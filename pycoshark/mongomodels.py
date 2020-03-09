@@ -13,6 +13,8 @@ class Refactoring(Document):
     :property description: (:class:`~mongoengine.fields.StringField`) The description of the refactoring provided by RefDiff.
     :property parent_commit_ce_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) The code entity states of changed enteties in the parent commits.
     :property type: (:class:`~mongoengine.fields.StringField`) Name of the refactoring type.
+    :property detection_tool: (:class:`~mongoengine.fields.StringField`) The refactoring detection tool, e.g., refdiff or rminer.
+    :property hunks: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) The hunks that were detected.
     """
 
     # PK: _id
@@ -21,6 +23,8 @@ class Refactoring(Document):
     description = StringField()
     parent_commit_ce_states = ListField(DictField())
     type = StringField()
+    detection_tool = StringField()
+    hunks = ListField(DictField())
 
 
 class Identity(Document):
@@ -230,7 +234,7 @@ class Issue(Document):
     :property components: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list, which componenets are affected
     :property labels: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of labels for this issue
     :property issue_type_manual: (:class:`~mongoengine.fields.DictField`) for manual issue types for this issue, contains information about the issue_type and the author, the author is the key and the issue_type is the value
-    :property issue_type_verified: (:class:`~mongoengine.fields.StringField`) verified issue_type of the issue; source is manual issue types 
+    :property issue_type_verified: (:class:`~mongoengine.fields.StringField`) verified issue_type of the issue; source is manual issue types
     :property resolution: (:class:`~mongoengine.fields.StringField`) resolution for this issue
     :property fix_versions: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of versions on which this issue is fixed
     :property assignee_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` document to which this issue was assigned
@@ -272,7 +276,7 @@ class Issue(Document):
     assignee_id = ObjectIdField()
     issue_links = ListField(DictField())
     parent_issue_id = ObjectIdField()
-    original_time_estimate=IntField()
+    original_time_estimate = IntField()
     environment = StringField()
     platform = StringField()
 
@@ -407,6 +411,8 @@ class VCSSystem(Document):
     repository_type = StringField(required=True)
     last_updated = DateTimeField()
     submodules = ListField(ObjectIdField())
+    repository_file = FileField(collection_name='repository_data')
+
 
 class VCSSubmodule(Document):
     """
@@ -645,7 +651,7 @@ class Commit(Document):
     :property labels: (:class:`~mongoengine.fields.DictField`) dictionary of different labels for this commit, is_bugfix etc.
     :property validations: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of different validations on this commit
     :property fixed_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
-  
+    :property szz_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` issues linked by the SZZ algorithm
     """
 
     meta = {
@@ -674,6 +680,7 @@ class Commit(Document):
     labels = DictField()
     validations = ListField(StringField(max_length=50))
     fixed_issue_ids = ListField(ObjectIdField())
+    szz_issue_ids = ListField(ObjectIdField())
 
 
 class Branch(Document):
@@ -858,7 +865,7 @@ class CodeEntityState(Document):
 
     @staticmethod
     def calculate_identifier(long_name, commit_id, file_id):
-        concat_string = long_name+str(commit_id)+str(file_id)
+        concat_string = long_name + str(commit_id) + str(file_id)
         return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
 
     def identifier(self):
@@ -898,7 +905,7 @@ class CodeGroupState(Document):
 
     @staticmethod
     def calculate_identifier(long_name, commit_id):
-        concat_string = long_name+str(commit_id)
+        concat_string = long_name + str(commit_id)
         return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
 
     def identifier(self):
@@ -986,3 +993,32 @@ class MynbouData(Document):
     metric_approach = StringField(required=True)
     file = FileField()
     last_updated = DateTimeField(default=None)
+
+
+class StaticWarning(Document):
+    """
+    StaticWarning class.
+    Inherits from :class:`mongoengine.Document`.
+
+    Holds multiple linter results, e.g., PMD_6.2 including line number, warning type and warning message.
+    Format [{'version': 'PMD_6.2', 'ln': 15, 'l_ty': 'UEO', 'msg': 'Unused something'}]
+
+    Index: commit_id, file_id
+
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
+    :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
+    :property linter: (:class:`~mongoengine.fields.ListField`) of (:class:`~mongoengine.fields.DictField`) refers to warning from linter.
+    :property metrics: (:class:`~mongoengine.fields.DictField`) dictionary of additional metrics, e.g., LLoC
+    """
+    meta = {
+        'indexes': [
+            'commit_id',
+            'file_id',
+        ],
+        'shard_key': ('commit_id', 'file_id'),
+    }
+
+    commit_id = ObjectIdField(required=True)
+    file_id = ObjectIdField(required=True)
+    linter = ListField(DictField())
+    metrics = DictField()
