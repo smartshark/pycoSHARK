@@ -108,9 +108,9 @@ def jira_is_resolved_and_fixed(issue):
     return False
 
 
-TEST_FILES = re.compile(r'(^|\/)(test|tests|test_long_running|testing|legacy-tests|testdata|test-framework|derbyTesting|unitTests|java\/stubs|test-lib|src\/it|src-lib-test|src-test|tests-src|test-cactus|test-data|test-deprecated|src_unitTests|test-tools)\/', re.IGNORECASE)
+TEST_FILES = re.compile(r'(^|\/)(test|tests|test_long_running|testing|legacy-tests|testdata|test-framework|derbyTesting|unitTests|java\/stubs|test-lib|src\/it|src-lib-test|src-test|tests-src|test-cactus|test-data|test-deprecated|src_unitTests|test-tools|gateway-test-release-utils|gateway-test-ldap|nifi-mock)\/', re.IGNORECASE)
 DOCUMENTATION_FILES = re.compile(r'(^|\/)(doc|docs|example|examples|sample|samples|demo|tutorial|helloworld|userguide|showcase|SafeDemo)\/', re.IGNORECASE)
-OTHER_EXCLUSIONS = re.compile(r'(^|\/)(_site|auxiliary-builds|gen-java|external)\/', re.IGNORECASE)
+OTHER_EXCLUSIONS = re.compile(r'(^|\/)(_site|auxiliary-builds|gen-java|external|nifi-external)\/', re.IGNORECASE)
 
 
 def java_filename_filter(filename, production_only=True):
