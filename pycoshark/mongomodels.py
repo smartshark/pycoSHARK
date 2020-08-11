@@ -48,6 +48,7 @@ class TravisJob(EmbeddedDocument):
     stages = ListField(StringField())
     metrics = DictField()
     config = DictField()
+    job_log = StringField()
 
     def __repr__(self):
         return "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s " \
