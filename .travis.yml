@@ -24,7 +24,7 @@ deploy:
     on:
       tags: true
   - provider: pages
-    github-token: $(TRAVIS_GH_TOKEN}
+    github-token: ${TRAVIS_GH_TOKEN}
     local-dir: $TRAVIS_BUILD_DIR/docs/build
     skip_cleanup: true
     on:
