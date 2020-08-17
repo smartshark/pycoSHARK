@@ -38,8 +38,15 @@ class Identity(Document):
     people = ListField(ObjectIdField())
 
 
-class TravisJob(EmbeddedDocument):
+class TravisJob(Document):
+    meta = {
+        'indexes': [
+            'build_id'
+        ],
+        'shard_key': ('tr_id',),
+    }
     tr_id = IntField(unique=True)
+    build_id = ObjectIdField(required=True)
     allow_failure = BooleanField(required=True)
     number = StringField(required=True)
     state = StringField(max_length=8, required=True)
