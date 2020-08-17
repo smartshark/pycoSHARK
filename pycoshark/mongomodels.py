@@ -85,7 +85,6 @@ class TravisBuild(Document):
     started_at = DateTimeField(default=None)
     finished_at = DateTimeField(default=None)
     stages = ListField(StringField())
-    jobs = ListField(EmbeddedDocumentField(TravisJob), default=list)
 
     def __repr__(self):
         return "<TravisBuild vcs_system_id:%s commit_id:%s number:%s duration:%s event_type:%s " \
