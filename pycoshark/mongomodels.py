@@ -88,9 +88,9 @@ class TravisBuild(Document):
 
     def __repr__(self):
         return "<TravisBuild vcs_system_id:%s commit_id:%s number:%s duration:%s event_type:%s " \
-               "pr_number:%s started_at:%s finished_at:%s stages:%s jobs:%s>" % \
+               "pr_number:%s started_at:%s finished_at:%s stages:%s>" % \
                (self.vcs_system_id, self.commit_id, self.number, self.duration, self.event_type, self.pr_number,
-                self.started_at, self.finished_at, self.stages, self.jobs)
+                self.started_at, self.finished_at, self.stages)
 
 
 class Project(Document):
