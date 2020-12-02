@@ -287,7 +287,7 @@ class Issue(Document):
     original_time_estimate = IntField()
     environment = StringField()
     platform = StringField()
-    is_pull_request = BooleanField()
+    is_pull_request = BooleanField(default=False)
 
     def __str__(self):
         return "System_id: %s, issue_system_id: %s, title: %s, desc: %s, created_at: %s, updated_at: %s, issue_type: %s," \
