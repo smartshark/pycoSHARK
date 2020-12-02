@@ -250,6 +250,7 @@ class Issue(Document):
     :property original_time_estimate: (:class:`~mongoengine.fields.IntField`)  estimated time to solve this issue
     :property environment: (:class:`~mongoengine.fields.StringField`) environment that is affected by this issue
     :property platform: (:class:`~mongoengine.fields.StringField`) platform that is affected by this issue
+    :property is_pull_request: (:class:`~mongoengine.fields.BoleanField`) true if this issue is a pull request, Github issues can be pull requests
     """
     meta = {
         'indexes': [
@@ -286,6 +287,7 @@ class Issue(Document):
     original_time_estimate = IntField()
     environment = StringField()
     platform = StringField()
+    is_pull_request = BooleanField()
 
     def __str__(self):
         return "System_id: %s, issue_system_id: %s, title: %s, desc: %s, created_at: %s, updated_at: %s, issue_type: %s," \
