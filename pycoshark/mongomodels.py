@@ -189,6 +189,141 @@ class Message(Document):
     patches = ListField(StringField())
 
 
+class PullRequestSystem(Document):
+    meta = {
+        'indexes': [
+            '#url'
+        ],
+        'shard_key': ('url', ),
+    }
+
+    project_id = ObjectIdField(required=True)
+    url = StringField(required=True)
+    last_updated = DateTimeField()
+
+
+class PullRequest(Document):
+    meta = {
+        'indexes': [
+            'pull_request_system_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_system_id'),
+    }
+
+
+    pull_request_system_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_system_id'])
+
+    title = StringField()
+    description = StringField()
+    is_draft = BooleanField()
+    is_locked = BooleanField()
+    lock_reason = StringField()
+    author_association = StringField()
+
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+    merged_at = DateTimeField()
+    merge_commit_id = ObjectIdField()
+
+    creator_id = ObjectIdField()  # the user that created the pull request
+    assignee_id = ObjectIdField()
+    linked_user_ids = ListField(ObjectIdField())
+    requested_reviewer_ids = ListField(ObjectIdField())
+
+    status = StringField()
+    labels = ListField(StringField())
+
+    source = StringField()  # owner/repo:branch
+    target = StringField()  # owner/repo:branch
+
+
+class PullRequestReview(Document):
+    meta = {
+        'indexes': [
+            'pull_request_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_id'])
+
+    state = StringField()
+    description = StringField()
+    creator_id = ObjectIdField()
+    submitted_at = DateTimeField()
+    author_association = StringField()
+    revision_hash = StringField()
+
+
+class PullRequestReviewComment(Document):
+    meta = {
+        'indexes': [
+            'pull_request_review_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_review_id'),
+    }
+
+    pull_request_review_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_review_id'])
+
+    comment = StringField()
+    author_association = StringField()
+    in_reply_to_id = ObjectIdField()  # we assume that this only refers to other PullRequestReviewComments
+
+    creator_id = ObjectIdField()
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+
+    path = StringField()  # file name
+    diff_hunk = StringField()  # unified diff
+    position = IntField()
+    original_position = IntField()
+    revision_hash = StringField()
+    original_revision_hash = StringField()
+
+
+class PullRequestComment(Document):
+    meta = {
+        'indexes': [
+            'pull_request_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_id'])
+    created_at = DateTimeField()
+    author_id = ObjectIdField()
+    comment = StringField()
+
+
+class PullRequestEvent(Document):
+    meta = {
+        'indexes': [
+            'pull_request_id',
+        ],
+        'shard_key': ('external_id', 'pull_request_id'),
+    }
+
+    # PK: external_id, issue_id
+    # Shard Key: external_id, issue_id
+
+    pull_request_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_id'])
+
+    created_at = DateTimeField()
+    author_id = ObjectIdField()
+    commit_id = ObjectIdField()
+    event_type = StringField()
+
+    additional_data = DictField()
+
+    old_value = DynamicField()
+    new_value = DynamicField()
+
+
 class IssueSystem(Document):
     """
     IssueSystem class.
