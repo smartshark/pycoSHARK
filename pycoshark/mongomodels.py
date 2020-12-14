@@ -210,7 +210,6 @@ class PullRequest(Document):
         'shard_key': ('external_id', 'pull_request_system_id'),
     }
 
-
     pull_request_system_id = ObjectIdField(required=True)
     external_id = StringField(unique_with=['pull_request_system_id'])
 
@@ -307,21 +306,62 @@ class PullRequestEvent(Document):
         'shard_key': ('external_id', 'pull_request_id'),
     }
 
-    # PK: external_id, issue_id
-    # Shard Key: external_id, issue_id
-
     pull_request_id = ObjectIdField(required=True)
     external_id = StringField(unique_with=['pull_request_id'])
 
     created_at = DateTimeField()
     author_id = ObjectIdField()
     commit_id = ObjectIdField()
+    commit_sha = StringField()
+    commit_repo_url = StringField()
     event_type = StringField()
 
     additional_data = DictField()
 
     old_value = DynamicField()
     new_value = DynamicField()
+
+
+class PullRequestCommit(Document):
+    meta = {
+        'indexes': [
+            'pull_request_id',
+        ],
+        'shard_key': ('commit_sha', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+
+    created_at = DateTimeField()
+    author_id = ObjectIdField()
+    committer_id = ObjectIdField()
+
+    commit_id = ObjectIdField()
+    commit_sha = StringField(required=True, unique_with=['pull_request_id'])
+    commit_repo_url = StringField()
+    parents = ListField(StringField())
+
+
+class PullRequestFile(Document):
+    meta = {
+        'indexes': [
+            'pull_request_id',
+        ],
+        'shard_key': ('path', 'commit_sha', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+    commit_id = ObjectIdField()
+    commit_sha = StringField(required=True)
+    commit_repo_url = StringField()
+
+    path = StringField(required=True)
+
+    status = StringField()
+    additions = IntField()
+    deletions = IntField()
+    changes = IntField()
+    patch = StringField()
 
 
 class IssueSystem(Document):
