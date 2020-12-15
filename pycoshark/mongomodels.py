@@ -332,7 +332,6 @@ class PullRequestCommit(Document):
 
     pull_request_id = ObjectIdField(required=True)
 
-    created_at = DateTimeField()
     author_id = ObjectIdField()
     committer_id = ObjectIdField()
     message = StringField()
@@ -348,11 +347,11 @@ class PullRequestFile(Document):
         'indexes': [
             'pull_request_id',
         ],
-        'shard_key': ('path', 'pull_request_commit_id', 'pull_request_id'),
+        'shard_key': ('path', 'sha', 'pull_request_id'),
     }
 
     pull_request_id = ObjectIdField(required=True)
-    pull_request_commit_id = ObjectIdField()  # we assume we only have files in a pull request commit
+    sha = StringField(required=True)  # this is not a sha of PullRequestCommit! 
 
     path = StringField(required=True)
 
