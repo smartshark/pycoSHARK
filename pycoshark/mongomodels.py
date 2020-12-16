@@ -253,7 +253,7 @@ class PullRequestReview(Document):
     creator_id = ObjectIdField()
     submitted_at = DateTimeField()
     author_association = StringField()
-    revision_hash = StringField()
+    commit_sha = StringField()
 
 
 class PullRequestReviewComment(Document):
@@ -279,8 +279,8 @@ class PullRequestReviewComment(Document):
     diff_hunk = StringField()  # unified diff
     position = IntField()
     original_position = IntField()
-    revision_hash = StringField()
-    original_revision_hash = StringField()
+    commit_sha = StringField()
+    original_commit_sha = StringField()
 
 
 class PullRequestComment(Document):
