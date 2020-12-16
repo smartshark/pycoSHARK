@@ -294,9 +294,10 @@ class PullRequestComment(Document):
     pull_request_id = ObjectIdField(required=True)
     external_id = StringField(unique_with=['pull_request_id'])
     created_at = DateTimeField()
+    updated_at = DateTimeField()
     author_id = ObjectIdField()
     comment = StringField()
-
+    author_association = StringField()
 
 class PullRequestEvent(Document):
     meta = {
@@ -318,8 +319,8 @@ class PullRequestEvent(Document):
 
     additional_data = DictField()
 
-    old_value = DynamicField()
-    new_value = DynamicField()
+    # old_value = DynamicField() this is in additional_data because it is event specific
+    # new_value = DynamicField()
 
 
 class PullRequestCommit(Document):
@@ -351,7 +352,7 @@ class PullRequestFile(Document):
     }
 
     pull_request_id = ObjectIdField(required=True)
-    sha = StringField(required=True)  # this is not a sha of PullRequestCommit! 
+    sha = StringField(required=True)  # this is not a sha of PullRequestCommit!
 
     path = StringField(required=True)
 
