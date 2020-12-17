@@ -190,6 +190,19 @@ class Message(Document):
 
 
 class PullRequestSystem(Document):
+    """
+    PullRequestSystem class.
+    Inherits from :class:`mongoengine.Document`
+
+    Index: #url
+
+    ShardKey: url
+
+    :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Project` id to which the pull request system belongs
+    :property url: (:class:`~mongoengine.fields.StringField`) url to the pull request system
+    :property last_updated: (:class:`~mongoengine.fields.DateTimeField`)  date when the data of the pull request system was last updated in the database
+    """
+
     meta = {
         'indexes': [
             '#url'
@@ -230,11 +243,18 @@ class PullRequest(Document):
     linked_user_ids = ListField(ObjectIdField())
     requested_reviewer_ids = ListField(ObjectIdField())
 
-    status = StringField()
+    state = StringField()
     labels = ListField(StringField())
 
-    source = StringField()  # owner/repo:branch
-    target = StringField()  # owner/repo:branch
+    source_repo_url = StringField()
+    source_branch = StringField()
+    source_commit_sha = StringField()
+    source_commit_id = ObjectIdField()
+
+    target_repo_url = StringField()
+    target_branch = StringField()
+    target_commit_sha = StringField()
+    target_commit_id = ObjectIdField()
 
 
 class PullRequestReview(Document):
@@ -253,7 +273,8 @@ class PullRequestReview(Document):
     creator_id = ObjectIdField()
     submitted_at = DateTimeField()
     author_association = StringField()
-    commit_sha = StringField()
+
+    commit_sha = StringField()  # only sha no repo_url, therefore no commit_id
 
 
 class PullRequestReviewComment(Document):
@@ -279,8 +300,16 @@ class PullRequestReviewComment(Document):
     diff_hunk = StringField()  # unified diff
     position = IntField()
     original_position = IntField()
-    commit_sha = StringField()
-    original_commit_sha = StringField()
+
+    commit_sha = StringField()  # no repo url, no commit_id
+    original_commit_sha = StringField()  # no repo url, no commit_id
+
+    start_line = IntField()
+    original_start_line = IntField()
+    start_side = StringField()
+    line = IntField()
+    original_line = IntField()
+    side = StringField()
 
 
 class PullRequestComment(Document):
@@ -299,6 +328,7 @@ class PullRequestComment(Document):
     comment = StringField()
     author_association = StringField()
 
+
 class PullRequestEvent(Document):
     meta = {
         'indexes': [
@@ -312,7 +342,7 @@ class PullRequestEvent(Document):
 
     created_at = DateTimeField()
     author_id = ObjectIdField()
-    commit_id = ObjectIdField()
+    commit_id = ObjectIdField()  # links to this repo
     commit_sha = StringField()
     commit_repo_url = StringField()
     event_type = StringField()
@@ -352,7 +382,7 @@ class PullRequestFile(Document):
     }
 
     pull_request_id = ObjectIdField(required=True)
-    sha = StringField(required=True)  # this is not a sha of PullRequestCommit!
+    sha = StringField(required=True)  # this is not a sha of PullRequestCommit
 
     path = StringField(required=True)
 
