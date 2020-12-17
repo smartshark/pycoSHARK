@@ -296,13 +296,15 @@ class PullRequestReviewComment(Document):
     created_at = DateTimeField()
     updated_at = DateTimeField()
 
-    path = StringField()  # file name
+    path = StringField()  # file name, not necessarily a link to PullRequestFile
     diff_hunk = StringField()  # unified diff
     position = IntField()
     original_position = IntField()
 
-    commit_sha = StringField()  # no repo url, no commit_id
-    original_commit_sha = StringField()  # no repo url, no commit_id
+    commit_sha = StringField()
+    original_commit_sha = StringField()
+    pull_request_commit_id = ObjectIdField()
+    original_pull_request_commit_id = ObjectIdField()
 
     start_line = IntField()
     original_start_line = IntField()
@@ -315,6 +317,8 @@ class PullRequestReviewComment(Document):
 class PullRequestComment(Document):
     """
     PullRequestComment class.
+
+    These comments are fetched via the issues api endpoint for github.
 
     Inherits from :class:`mongoengine.Document`
 
@@ -351,6 +355,8 @@ class PullRequestComment(Document):
 class PullRequestEvent(Document):
     """
     PullRequestEvent class.
+
+    These events are fetched via the issues api endpoint for github.
 
     Inherits from :class:`mongoengine.Document`
 
@@ -395,7 +401,8 @@ class PullRequestCommit(Document):
     """
     PullRequestCommit class.
 
-    We have this extra class because not every PullRequestCommit is a Commit in our collection. Sometimes the source of the PullRequestCommit is the source repository of the pull request, i.e. a fork of our VCSSystem.
+    We have this extra class because not every PullRequestCommit is a Commit in our collection.
+    Sometimes, the source of the PullRequestCommit is the source repository of the pull request, i.e. a fork of our VCSSystem.
     
     Inherits from :class:`mongoengine.Document`
 
@@ -437,6 +444,9 @@ class PullRequestFile(Document):
     """
     PullRequestFile class.
     Inherits from :class:`mongoengine.Document`
+
+    The current set of Files associated with the pull request.
+    The PullRequestReviewComment has its own path for a file, however this may link to an older file no longer present in the current HEAD of the pull request.
 
     Index: pull_request_id
 
