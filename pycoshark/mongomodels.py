@@ -189,6 +189,407 @@ class Message(Document):
     patches = ListField(StringField())
 
 
+class PullRequestSystem(Document):
+    """
+    PullRequestSystem class.
+    Inherits from :class:`mongoengine.Document`
+
+    Index: #url
+
+    ShardKey: url
+
+    :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Project` id to which the pull request system belongs
+    :property url: (:class:`~mongoengine.fields.StringField`) url to the pull request system
+    :property last_updated: (:class:`~mongoengine.fields.DateTimeField`)  date when the data of the pull request system was last updated in the database
+    """
+
+    meta = {
+        'indexes': [
+            '#url'
+        ],
+        'shard_key': ('url', ),
+    }
+
+    project_id = ObjectIdField(required=True)
+    url = StringField(required=True)
+    last_updated = DateTimeField()
+
+
+class PullRequest(Document):
+    """
+    PullRequest class.
+
+    Inherits from :class:`mongoengine.Document`
+
+    Index: pull_request_system_id
+
+    ShardKey: external_id, pull_request_system_id
+
+    :property pull_request_system_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequestSystem` id of the system to which the pull request belongs
+    :property external_id: (:class:`~mongoengine.fields.StringField`) number of the pull request
+
+    :property title: (:class:`~mongoengine.fields.StringField`) title of the pull request
+    :property description: (:class:`~mongoengine.fields.StringField`) description of the pull request
+    :property is_draft (:class:`~mongoengine.fields.BooleanField`) true if this pull request is a draft
+    :property is_locked (:class:`~mongoengine.fields.BooleanField`) true if this pull request is locked
+    :property lock_reason: (:class:`~mongoengine.fields.StringField`) reason for the locking
+    :property author_association: (:class:`~mongoengine.fields.StringField`) github author association, e.g., owner, NONE, collaborator
+
+    :property created_at: (:class:`~mongoengine.fields.DateTimeField`) date, when this pr was created
+    :property updated_at: (:class:`~mongoengine.fields.DateTimeField`) date, when this pr was updated
+    :property merged_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this pr was merged
+    :property merge_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.Commit`
+
+    :property creator_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of the pr
+    :property assignee_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` assignee of the pr
+    :property linked_user_ids: (:class:`~mongoengine.fields.ListField` of :class:`~mongoengine.fields.ObjectIdField` of the :class:`~pycoshark.mongomodels.People`) list of linked user ids
+    :property requested_reviewer_ids: (:class:`~mongoengine.fields.ListField` of :class:`~mongoengine.fields.ObjectIdField` of the :class:`~pycoshark.mongomodels.People`) list of requested reviewer ids
+
+    :property state: (:class:`~mongoengine.fields.StringField`) state of the pr
+    :property labels: (:class:`~mongoengine.fields.ListField` of :class:`~mongoengine.fields.StringField` list of labels for this pr
+
+    :property source_repo_url: (:class:`~mongoengine.fields.StringField`) source repository of this pr, can be a fork
+    :property source_branch: (:class:`~mongoengine.fields.StringField`) source branch of this pr
+    :property source_commit_sha: (:class:`~mongoengine.fields.StringField`) source commit sha of this pr
+    :property source_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.Commit` commit id if available in local VCSSystem
+
+    :property target_repo_url: (:class:`~mongoengine.fields.StringField`) target repository of this pr, should be our VCSSystem
+    :property target_branch: (:class:`~mongoengine.fields.StringField`) target branch of this pr
+    :property target_commit_sha: (:class:`~mongoengine.fields.StringField`) target commit sha of this pr
+    :property target_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.Commit` commit id if available in local VCSSystem
+    """
+
+    meta = {
+        'indexes': [
+            'pull_request_system_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_system_id'),
+    }
+
+    pull_request_system_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_system_id'])
+
+    title = StringField()
+    description = StringField()
+    is_draft = BooleanField()
+    is_locked = BooleanField()
+    lock_reason = StringField()
+    author_association = StringField()
+
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+    merged_at = DateTimeField()
+    merge_commit_id = ObjectIdField()
+
+    creator_id = ObjectIdField()
+    assignee_id = ObjectIdField()
+    linked_user_ids = ListField(ObjectIdField())
+    requested_reviewer_ids = ListField(ObjectIdField())
+
+    state = StringField()
+    labels = ListField(StringField())
+
+    source_repo_url = StringField()
+    source_branch = StringField()
+    source_commit_sha = StringField()
+    source_commit_id = ObjectIdField()
+
+    target_repo_url = StringField()
+    target_branch = StringField()
+    target_commit_sha = StringField()
+    target_commit_id = ObjectIdField()
+
+
+class PullRequestReview(Document):
+    """
+    PullRequestReview class.
+
+    Inherits from :class:`mongoengine.Document`
+
+    Index: pull_request_id
+
+    ShardKey: external_id, pull_request_id
+
+    :property pull_request_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequest` id to which the pull request review belongs
+    :property external_id: (:class:`~mongoengine.fields.StringField`) number of the review
+
+    :property state: (:class:`~mongoengine.fields.StringField`) state of the pull request review
+    :property description: (:class:`~mongoengine.fields.StringField`) body of the pull request review
+    :property creator_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of review
+    :property submitted_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this review was submitted
+    :property author_association: (:class:`~mongoengine.fields.StringField`) github author association, e.g., owner, NONE, collaborator
+
+    :property commit_sha: (:class:`~mongoengine.fields.StringField`) commit sha
+    :property pull_request_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.PullRequestCommit` pull request commit id (if available)
+    """
+
+    meta = {
+        'indexes': [
+            'pull_request_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_id'])
+
+    state = StringField()
+    description = StringField()
+    creator_id = ObjectIdField()
+    submitted_at = DateTimeField()
+    author_association = StringField()
+
+    commit_sha = StringField()
+    pull_request_commit_id = ObjectIdField()
+
+
+class PullRequestReviewComment(Document):
+    """
+    PullRequestReviewComment class.
+
+    These are comments on pull requests. They link to PullRequestCommits if they are available.
+    The path and diff_hunk can be the same as a PullRequestFile, however that is not always the case as PullRequestFile are only the currently active PullRequestFiles
+    and the PullRequestReviewComment may reference an older commit.
+
+    Inherits from :class:`mongoengine.Document`
+
+    Index: pull_request_review_id
+
+    ShardKey: external_id, pull_request_review_id
+
+    :property pull_request_review_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequestReview` id to which the pull request review comment belongs
+    :property external_id: (:class:`~mongoengine.fields.StringField`) number of the review comment
+
+    :property comment: (:class:`~mongoengine.fields.StringField`) text of the comment
+    :property author_association: (:class:`~mongoengine.fields.StringField`) github author association, e.g., owner, NONE, collaborator
+    :property in_reply_to_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequestReviewComment` id which the pull request review comment replies to (if any)
+
+    :property creator_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of comment
+    :property created_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this comment was created
+    :property updated_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this comment was updated
+
+    :property path: (:class:`~mongoengine.fields.StringField`) file which this comment refers to
+    :property diff_hunk: (:class:`~mongoengine.fields.StringField`) diff which this comment refers to
+    :property position: (:class:`~mongoengine.fields.IntField`) position in the file this comment refers to
+    :property original_position: (:class:`~mongoengine.fields.IntField`) original position in the file this comment refers to (deleted line instead of added line)
+
+    :property commit_sha: (:class:`~mongoengine.fields.StringField`) commit sha
+    :property original_commit_sha: (:class:`~mongoengine.fields.StringField`) parent commit sha
+    :property pull_request_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.PullRequestCommit` pull request commit id (if available)
+    :property original_pull_request_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.PullRequestCommit` pull request commit id (if available)
+
+    :property start_line: (:class:`~mongoengine.fields.IntField`) position in the file this comment refers to (new)
+    :property original_start_line: (:class:`~mongoengine.fields.IntField`) position in the file this comment refers to (new)
+    :property start_side: (:class:`~mongoengine.fields.StringField`) position in the diff editor LEFT/RIGHT for deleted or added
+
+    :property line: (:class:`~mongoengine.fields.IntField`) position in the file this comment refers to (new)
+    :property original_line: (:class:`~mongoengine.fields.IntField`) position in the file this comment refers to (new)
+    :property side: (:class:`~mongoengine.fields.StringField`) position in the diff editor LEFT/RIGHT for deleted or added
+    """
+
+    meta = {
+        'indexes': [
+            'pull_request_review_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_review_id'),
+    }
+
+    pull_request_review_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_review_id'])
+
+    comment = StringField()
+    author_association = StringField()
+    in_reply_to_id = ObjectIdField()  # we assume that this only refers to other PullRequestReviewComments
+
+    creator_id = ObjectIdField()
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+
+    path = StringField()  # file name, not necessarily a link to PullRequestFile
+    diff_hunk = StringField()  # unified diff
+    position = IntField()
+    original_position = IntField()
+
+    commit_sha = StringField()
+    original_commit_sha = StringField()
+    pull_request_commit_id = ObjectIdField()
+    original_pull_request_commit_id = ObjectIdField()
+
+    start_line = IntField()
+    original_start_line = IntField()
+    start_side = StringField()
+    line = IntField()
+    original_line = IntField()
+    side = StringField()
+
+
+class PullRequestComment(Document):
+    """
+    PullRequestComment class.
+
+    These comments are fetched via the issues api endpoint for github.
+
+    Inherits from :class:`mongoengine.Document`
+
+    Index: pull_request_id
+
+    ShardKey: external_id, pull_request_id
+
+    :property pull_request_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequest` id to which the pull request commit belongs
+    :property external_id: (:class:`~mongoengine.fields.StringField`) number of the comment
+
+    :property created_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this comment was created
+    :property updated_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this comment was updated
+    :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of commit
+    :property comment: (:class:`~mongoengine.fields.StringField`) text of the comment
+    :property author_association: (:class:`~mongoengine.fields.StringField`) github author association, e.g., owner, NONE, collaborator
+    """
+
+    meta = {
+        'indexes': [
+            'pull_request_id'
+        ],
+        'shard_key': ('external_id', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_id'])
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+    author_id = ObjectIdField()
+    comment = StringField()
+    author_association = StringField()
+
+
+class PullRequestEvent(Document):
+    """
+    PullRequestEvent class.
+
+    These events are fetched via the issues api endpoint for github.
+
+    Inherits from :class:`mongoengine.Document`
+
+    Index: pull_request_id
+
+    ShardKey: external_id, pull_request_id
+
+    :property pull_request_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequest` id to which the pull request commit belongs
+    :property external_id: (:class:`~mongoengine.fields.StringField`) number of the event
+    
+    :property created_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this event was created
+    :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of commit
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which the pull request event links, only if it is in our repository
+    :property commit_sha: (:class:`~mongoengine.fields.StringField`) commit_sha of the commit
+    :property commit_repo_url: (:class:`~mongoengine.fields.StringField`) url of the repository of the commit
+    :property event_type: (:class:`~mongoengine.fields.StringField`) event type name
+
+    :property additional_data: (:class:`~mongoengine.fields.DictField`) additional data from the backend not common for all event types
+    """
+
+    meta = {
+        'indexes': [
+            'pull_request_id',
+        ],
+        'shard_key': ('external_id', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['pull_request_id'])
+
+    created_at = DateTimeField()
+    author_id = ObjectIdField()
+    commit_id = ObjectIdField()
+    commit_sha = StringField()
+    commit_repo_url = StringField()
+    event_type = StringField()
+
+    additional_data = DictField()
+
+
+class PullRequestCommit(Document):
+    """
+    PullRequestCommit class.
+
+    We have this extra class because not every PullRequestCommit is a Commit in our collection.
+    Sometimes, the source of the PullRequestCommit is the source repository of the pull request, i.e. a fork of our VCSSystem.
+
+    Inherits from :class:`mongoengine.Document`
+
+    Index: pull_request_id
+
+    ShardKey: commit_sha, pull_request_id
+
+    :property pull_request_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequest` id to which the pull request commit belongs
+    :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of commit
+    :property committer_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` committer of commit
+    :property message: (:class:`~mongoengine.fields.StringField`) commit message
+
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which the pull request commit links, only if it is in our repository
+    :property commit_sha: (:class:`~mongoengine.fields.StringField`) commit_sha of the commit, could be the hash from the source repo of the pull request
+    :property commit_repo_url: (:class:`~mongoengine.fields.StringField`) url of the repository of the commit
+    :property parents: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of parents (revision hashes) of this commit
+    """
+
+    meta = {
+        'indexes': [
+            'pull_request_id',
+        ],
+        'shard_key': ('commit_sha', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+
+    author_id = ObjectIdField()
+    committer_id = ObjectIdField()
+    message = StringField()
+
+    commit_id = ObjectIdField()
+    commit_sha = StringField(required=True, unique_with=['pull_request_id'])
+    commit_repo_url = StringField()
+    parents = ListField(StringField())
+
+
+class PullRequestFile(Document):
+    """
+    PullRequestFile class.
+    Inherits from :class:`mongoengine.Document`
+
+    The current set of Files associated with the pull request.
+    The PullRequestReviewComment has its own path for a file, however this may link to an older file no longer present in the current HEAD of the pull request.
+
+    Index: pull_request_id
+
+    ShardKey: path, sha, pull_request_id
+
+    :property pull_request_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequest` id to which the pull request file belongs
+    :property sha: (:class:`~mongoengine.fields.StringField`) sha hash, maybe file hash
+    :property path: (:class:`~mongoengine.fields.StringField`) filename
+    :property status: (:class:`~mongoengine.fields.StringField`) status (e.g., added)
+    :property additions: (:class:`~mongoengine.fields.IntField`) added lines
+    :property deletions: (:class:`~mongoengine.fields.IntField`) deleted lines
+    :property changes: (:class:`~mongoengine.fields.IntField`) changed lines
+    :property patch: (:class:`~mongoengine.fields.StringField`) diff hunk of the change
+    """
+
+    meta = {
+        'indexes': [
+            'pull_request_id',
+        ],
+        'shard_key': ('path', 'sha', 'pull_request_id'),
+    }
+
+    pull_request_id = ObjectIdField(required=True)
+    sha = StringField(required=True)  # this is not a sha of PullRequestCommit
+
+    path = StringField(required=True)
+
+    status = StringField()
+    additions = IntField()
+    deletions = IntField()
+    changes = IntField()
+    patch = StringField()
+
+
 class IssueSystem(Document):
     """
     IssueSystem class.
