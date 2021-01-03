@@ -475,7 +475,7 @@ class PullRequestEvent(Document):
 
     :property pull_request_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequest` id to which the pull request commit belongs
     :property external_id: (:class:`~mongoengine.fields.StringField`) number of the event
-    
+
     :property created_at: (:class:`~mongoengine.fields.DateTimeField`)  date, when this event was created
     :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of commit
     :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which the pull request event links, only if it is in our repository
@@ -562,7 +562,7 @@ class PullRequestFile(Document):
     ShardKey: path, sha, pull_request_id
 
     :property pull_request_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.PullRequest` id to which the pull request file belongs
-    :property sha: (:class:`~mongoengine.fields.StringField`) sha hash, maybe file hash
+    :property sha: (:class:`~mongoengine.fields.StringField`) sha hash, maybe file hash (only present if a file is changed, not for changing rights)
     :property path: (:class:`~mongoengine.fields.StringField`) filename
     :property status: (:class:`~mongoengine.fields.StringField`) status (e.g., added)
     :property additions: (:class:`~mongoengine.fields.IntField`) added lines
@@ -575,11 +575,11 @@ class PullRequestFile(Document):
         'indexes': [
             'pull_request_id',
         ],
-        'shard_key': ('path', 'sha', 'pull_request_id'),
+        'shard_key': ('path', 'pull_request_id'),
     }
 
     pull_request_id = ObjectIdField(required=True)
-    sha = StringField(required=True)  # this is not a sha of PullRequestCommit
+    sha = StringField()  # this is not a sha of PullRequestCommit
 
     path = StringField(required=True)
 
