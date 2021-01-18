@@ -916,8 +916,8 @@ class Hunk(Document):
     :property old_lines: (:class:`~mongoengine.fields.IntField`)  old lines in the new file
     :property content: (:class:`~mongoengine.fields.StringField`) textual change
     :property lines_manual: (:class:`~mongoengine.fields.DictField`) for manual line labels for this hunk, contains information about the different labels of lines and the author, the author is the key and the value is a (:class:`~mongoengine.fields.DictField`) of different label types and their belonging lines. Therefore, the key is the label type and the value is an array of line numbers
-    :property lines_verified: (:class:`~mongoengine.fields.DictField`) the verified labels for the lines of the hunk. The key is the label and the value is an array of line numbers    
-
+    :property lines_verified: (:class:`~mongoengine.fields.DictField`) the verified labels for the lines of the hunk. The key is the label and the value is an array of line numbers
+    :property uncorrected_lines_manual: (:class:`~mongoengine.fields.DictField`) copy of uncorrected labels, temporary. Structure is the same as lines_manual
     """
 
     meta = {
@@ -938,6 +938,7 @@ class Hunk(Document):
     content = StringField(required=True)
     lines_manual = DictField()
     lines_verified = DictField()
+    uncorrected_lines_manual = DictField()
 
 
 class File(Document):
