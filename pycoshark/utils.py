@@ -1,4 +1,5 @@
 import argparse
+import math
 import re
 
 import networkx as nx
@@ -445,6 +446,7 @@ def copy_projects(
             target_db[collection].create_index(keys, name=name, **index_info)
 
     for project_name in projects:
+        print('starting for project %s' % project_name)
         if 'project' in collections:
             _copy_data(collection='project', condition={'name': project_name}, source_db=source_db, target_db=target_db)
 
@@ -478,29 +480,49 @@ def copy_projects(
                 # then copy all others
                 for cur_col in vcs_ref_collections:
                     if cur_col in collections:
-                        _copy_data(collection=cur_col, condition={'vcs_system_id': vcs_system['_id']},
-                                   source_db=source_db, target_db=target_db)
+                        if cur_col != 'commit':
+                            _copy_data(collection=cur_col, condition={'vcs_system_id': vcs_system['_id']},
+                                       source_db=source_db, target_db=target_db)
+                        else:  # special case handling for commits due to the size
+                            commits = [commit['_id'] for commit in
+                                       source_db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1},
+                                                             no_cursor_timeout=True)]
+                            print("copying data for collection commit")
+
+                            for i in range(0, math.ceil(len(commits) / 100)):
+                                slice_start = i * 100
+                                slice_end = min((i + 1) * 100, len(commits))
+                                cur_commit_slice = commits[slice_start:slice_end]
+                                _copy_data(collection=cur_col,
+                                           condition={'_id': {'$in': cur_commit_slice}},
+                                           source_db=source_db, target_db=target_db, verbose=False)
 
                 if not collections.isdisjoint(set(travis_ref_collections)):
                     print("copying data that references travis_job")
-                    for travis_build in source_db.travis_build.find({'vcs_system_id': vcs_system['_id']},
-                                                                    no_cursor_timeout=True):
-                        for cur_col in travis_ref_collections:
-                            if cur_col in collections:
-                                _copy_data(collection=cur_col, condition={'build_id': travis_build['_id']},
-                                           source_db=source_db, target_db=target_db, verbose=False)
+                    travis_builds = [travis_build for travis_build in
+                                     source_db.travis_build.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1})]
+                    for cur_col in travis_ref_collections:
+                        if cur_col in collections:
+                            _copy_data(collection=cur_col, condition={'build_id': {'$in': travis_builds}},
+                                       source_db=source_db, target_db=target_db, verbose=False)
 
                 if not collections.isdisjoint(set().union(commit_ref_collections, file_action_ref_collections)):
-                    print("start copying data that references commit")
-                    commits_done = 0
-                    for commit in source_db.commit.find({'vcs_system_id': vcs_system['_id']}, no_cursor_timeout=True):
+                    commits = [commit['_id'] for commit in
+                               source_db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1},
+                                                     no_cursor_timeout=True)]
+                    print("start copying data that references commit (%i commits total)" % len(commits))
+
+                    for i in range(0, math.ceil(len(commits) / 100)):
+                        slice_start = i * 100
+                        slice_end = min((i + 1) * 100, len(commits))
+                        cur_commit_slice = commits[slice_start:slice_end]
+
                         for cur_col in commit_ref_collections:
                             if cur_col in collections:
-                                if cur_col == 'commit_changes':
-                                    # special case handling for commit changes
-                                    condition = {'old_commit_id': commit['_id']}
+                                if cur_col == 'commit_changes':  # special case because no field commit_id
+                                    condition = {'old_commit_id': {'$in': cur_commit_slice}}
                                 else:
-                                    condition = {'commit_id': commit['_id']}
+                                    condition = {'commit_id': {'$in': cur_commit_slice}}
                                 if cur_col in collections:
                                     _copy_data(collection=cur_col, condition=condition, source_db=source_db,
                                                target_db=target_db, verbose=False)
@@ -508,15 +530,15 @@ def copy_projects(
                             # check if file action references must be copied
                             if cur_col == 'file_action' and \
                                     not collections.isdisjoint(set(file_action_ref_collections)):
-                                for file_action in source_db.file_action.find({'commit_id': commit['_id']}):
+                                file_actions = [file_action['_id'] for file_action in
+                                                source_db.file_action.find({'commit_id': {'$in': cur_commit_slice}})]
+                                if True:
                                     for cur_faref_col in file_action_ref_collections:
                                         if cur_faref_col in collections:
                                             _copy_data(collection=cur_faref_col,
-                                                       condition={'file_action_id': file_action['_id']},
+                                                       condition={'file_action_id': {'$in': file_actions}},
                                                        source_db=source_db, target_db=target_db, verbose=False)
-                        commits_done += 1
-                        if commits_done % 100 == 0:
-                            print("%d commits done" % commits_done)
+                        print((i + 1) * 100, 'commits done')
 
         if not collections.isdisjoint(
                 (set().union(its_ref_collections, issue_ref_collections))):
@@ -528,11 +550,12 @@ def copy_projects(
                                    source_db=source_db, target_db=target_db)
 
                 if not collections.isdisjoint(set(issue_ref_collections)):
-                    for issue in source_db.issue.find({'issue_system_id': issue_system['_id']}):
-                        for cur_col in issue_ref_collections:
-                            if cur_col in collections:
-                                _copy_data(collection=cur_col, condition={'issue_id': issue['_id']},
-                                           source_db=source_db, target_db=target_db, verbose=False)
+                    issues = [issue['_id'] for issue in
+                              source_db.issue.find({'issue_system_id': issue_system['_id']}, {'_id': 1})]
+                    for cur_col in issue_ref_collections:
+                        if cur_col in collections:
+                            _copy_data(collection=cur_col, condition={'issue_id': {'$in': issues}},
+                                       source_db=source_db, target_db=target_db, verbose=False)
 
         if not collections.isdisjoint(set(ml_ref_collections)):
             print("copying data that references mailing_list")
@@ -553,21 +576,23 @@ def copy_projects(
                                    source_db=source_db, target_db=target_db)
 
                 if not collections.isdisjoint(set().union(pr_ref_collections, prreview_ref_collections)):
-                    for pull_request in \
-                            source_db.pull_request.find({'pull_request_system_id': pull_request_system['_id']}):
-                        for cur_col in pr_ref_collections:
-                            if cur_col in collections:
-                                _copy_data(collection=cur_col, condition={'pull_request_id': pull_request['_id']},
-                                           source_db=source_db, target_db=target_db, verbose=False)
+                    pull_requests = [pull_request['_id'] for pull_request in
+                                     source_db.pull_request.find({'pull_request_system_id': pull_request_system['_id']},
+                                                                 {'_id': 1})]
+                    for cur_col in pr_ref_collections:
+                        if cur_col in collections:
+                            _copy_data(collection=cur_col, condition={'pull_request_id': {'$in': pull_requests}},
+                                       source_db=source_db, target_db=target_db, verbose=False)
 
-                        if not collections.isdisjoint(set(prreview_ref_collections)):
-                            for pull_request_review in \
-                                    source_db.pull_request_review.find({'pull_request_id': pull_request['_id']}):
-                                for cur_col in prreview_ref_collections:
-                                    if cur_col in collections:
-                                        _copy_data(collection=cur_col,
-                                                   condition={'pull_request_review_id': pull_request_review['_id']},
-                                                   source_db=source_db, target_db=target_db, verbose=False)
+                    if not collections.isdisjoint(set(prreview_ref_collections)):
+                        pull_request_reviews = [pull_request_review['_id'] for pull_request_review in
+                                                source_db.pull_request_review.find(
+                                                    {'pull_request_id': {'$in': pull_requests}}, {'_id': 1})]
+                        for cur_col in prreview_ref_collections:
+                            if cur_col in collections:
+                                _copy_data(collection=cur_col,
+                                           condition={'pull_request_review_id': {'$in': pull_request_reviews}},
+                                           source_db=source_db, target_db=target_db, verbose=False)
 
 
 def _copy_data(collection, condition, source_db, target_db, verbose=True):
@@ -580,6 +605,6 @@ def _copy_data(collection, condition, source_db, target_db, verbose=True):
     if source_db[collection].count_documents(condition) > 0:
         data = source_db[collection].find(condition, no_cursor_timeout=True)
         try:
-            target_db[collection].insert_many(data)
+            target_db[collection].insert_many(data, ordered=False)
         except BulkWriteError:
             pass
