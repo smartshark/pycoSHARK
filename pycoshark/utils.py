@@ -1,8 +1,12 @@
 import argparse
+import math
 import re
 
 import networkx as nx
+import gridfs
 
+from pymongo import MongoClient
+from pymongo.errors import BulkWriteError
 from mongoengine import connection, Document
 from dateutil.relativedelta import relativedelta
 from Levenshtein import distance
@@ -352,3 +356,255 @@ def heuristic_renames(vcs_system_id, revision_hash):
                 continue
             added_files.append(new_file)
     return true_renames, added_files
+
+
+def copy_projects(
+        *, projects,
+        collections=None,
+        source_dbname='smartshark',
+        source_user=None,
+        source_password=None,
+        source_hostname='localhost',
+        source_port=27017,
+        source_authentication_db=None,
+        source_ssl=False,
+        target_dbname='smartshark_backup',
+        target_user=None,
+        target_password=None,
+        target_hostname='localhost',
+        target_port=27017,
+        target_authentication_db=None,
+        target_ssl=False):
+    """
+    Copy data for a list of projects between databases. Also allows the specification of a list of collections that
+    should be copied. All other collections are ignored. The personal data from the people and identities collections
+    is currently ignored.
+
+    :param projects: List of projects that should be copied (required)
+    :param collections: List of collections that should be copied. Default:  None (which means that all collections
+    are copied)
+    :param source_dbname: name of the source database. Default: 'smartshark'
+    :param source_user: user name for the source database. Default: None
+    :param source_password: password for the source database. Default: None
+    :param source_hostname: host of the source database Default: 'localhost'
+    :param source_port: port of the source database. Default: 27017
+    :param source_authentication_db: authentication db of the source database. Default: None
+    :param source_ssl:  whether SSL is used for the connection to the source database. Default: None
+    :param target_dbname: name of the target database. Default: 'smartshark_backup'
+    :param target_user: user name for the target database. Default: None
+    :param target_password: password for the target database. Default: None
+    :param target_hostname: host of the target database Default: 'localhost'
+    :param target_port: port of the target database. Default: 27017
+    :param target_authentication_db: authentication db of the target database. Default: None
+    :param target_ssl: whether SSL is used for the connection to the target database. Default: None
+    """
+
+    project_ref_collections = ['vcs_system', 'issue_system', 'mailing_list', 'pull_request_system']
+    vcs_ref_collections = ['branch', 'tag', 'file', 'commit', 'travis_build']
+    commit_ref_collections = ['clone_instance', 'code_entity_state', 'code_group_state',
+                              'commit_changes', 'file_action', 'refactoring']
+    file_action_ref_collections = ['hunk']
+    its_ref_collections = ['issue']
+    issue_ref_collections = ['issue_comment', 'event']
+    ml_ref_collections = ['message']
+    travis_ref_collections = ['travis_job']
+    prsystem_ref_collections = ['pull_request']
+    pr_ref_collections = ['pull_request_comment', 'pull_request_commit', 'pull_request_event', 'pull_request_file',
+                          'pull_request_file', 'pull_request_review']
+    prreview_ref_collections = ['pull_request_review_comment']
+    special_case_collections = ['project', 'repository_data']
+
+    if collections is None:
+        collections = set().union(project_ref_collections, vcs_ref_collections, commit_ref_collections,
+                                  file_action_ref_collections, its_ref_collections, issue_ref_collections,
+                                  ml_ref_collections, travis_ref_collections, special_case_collections,
+                                  prsystem_ref_collections, pr_ref_collections, prreview_ref_collections)
+
+    print("connecting to source database")
+    source_uri = create_mongodb_uri_string(source_user, source_password, source_hostname, source_port,
+                                           source_authentication_db, source_ssl)
+    print(source_uri)
+    client_source = MongoClient(source_uri)
+    source_db = client_source[source_dbname]
+    print("found the following collections in source db: %s" % source_db.list_collection_names())
+
+    print("connecting to target database")
+    target_uri = create_mongodb_uri_string(target_user, target_password, target_hostname, target_port,
+                                           target_authentication_db, target_ssl)
+
+    client_target = MongoClient(target_uri)
+    target_db = client_target[target_dbname]
+    print("found the following collections in target db: %s" % target_db.list_collection_names())
+
+    print("creating collections with index in target database if they do not exist yet")
+    for collection in collections:
+        for name, index_info in source_db[collection].index_information().items():
+            keys = index_info['key']
+            del (index_info['ns'])
+            del (index_info['v'])
+            del (index_info['key'])
+            target_db[collection].create_index(keys, name=name, **index_info)
+
+    for project_name in projects:
+        print('starting for project %s' % project_name)
+        if 'project' in collections:
+            _copy_data(collection='project', condition={'name': project_name}, source_db=source_db, target_db=target_db)
+
+        project = source_db.project.find_one({'name': project_name})
+        for cur_col in project_ref_collections:
+            if cur_col in collections:
+                _copy_data(collection=cur_col, condition={'project_id': project['_id']},
+                           source_db=source_db, target_db=target_db)
+
+        if not collections.isdisjoint(
+                (set().union(vcs_ref_collections,
+                             commit_ref_collections,
+                             file_action_ref_collections,
+                             ['repository_file']))):
+            print('copying data that references vcs_system...')
+            for vcs_system in source_db.vcs_system.find({'project_id': project['_id']}):
+
+                # first treat the special case repository data
+                if 'repository_data' in collections:
+                    print("copying data for collection repository_data")
+                    file_id = vcs_system['repository_file']
+                    source_fs = gridfs.GridFS(source_db, collection='repository_data')
+                    target_fs = gridfs.GridFS(target_db, collection='repository_data')
+                    for grid_out in source_fs.find({'_id': file_id}):
+                        if target_fs.exists(file_id):
+                            continue
+                        with target_fs.new_file(_id=file_id, filename=grid_out.filename,
+                                                content_type=grid_out.content_type) as grid_in:
+                            grid_in.write(grid_out.read())
+
+                # then copy all others
+                for cur_col in vcs_ref_collections:
+                    if cur_col in collections:
+                        if cur_col != 'commit':
+                            _copy_data(collection=cur_col, condition={'vcs_system_id': vcs_system['_id']},
+                                       source_db=source_db, target_db=target_db)
+                        else:  # special case handling for commits due to the size
+                            commits = [commit['_id'] for commit in
+                                       source_db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1},
+                                                             no_cursor_timeout=True)]
+                            print("copying data for collection commit")
+
+                            for i in range(0, math.ceil(len(commits) / 100)):
+                                slice_start = i * 100
+                                slice_end = min((i + 1) * 100, len(commits))
+                                cur_commit_slice = commits[slice_start:slice_end]
+                                _copy_data(collection=cur_col,
+                                           condition={'_id': {'$in': cur_commit_slice}},
+                                           source_db=source_db, target_db=target_db, verbose=False)
+
+                if not collections.isdisjoint(set(travis_ref_collections)):
+                    print("copying data that references travis_job")
+                    travis_builds = [travis_build for travis_build in
+                                     source_db.travis_build.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1})]
+                    for cur_col in travis_ref_collections:
+                        if cur_col in collections:
+                            _copy_data(collection=cur_col, condition={'build_id': {'$in': travis_builds}},
+                                       source_db=source_db, target_db=target_db, verbose=False)
+
+                if not collections.isdisjoint(set().union(commit_ref_collections, file_action_ref_collections)):
+                    commits = [commit['_id'] for commit in
+                               source_db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1},
+                                                     no_cursor_timeout=True)]
+                    print("start copying data that references commit (%i commits total)" % len(commits))
+
+                    for i in range(0, math.ceil(len(commits) / 100)):
+                        slice_start = i * 100
+                        slice_end = min((i + 1) * 100, len(commits))
+                        cur_commit_slice = commits[slice_start:slice_end]
+
+                        for cur_col in commit_ref_collections:
+                            if cur_col in collections:
+                                if cur_col == 'commit_changes':  # special case because no field commit_id
+                                    condition = {'old_commit_id': {'$in': cur_commit_slice}}
+                                else:
+                                    condition = {'commit_id': {'$in': cur_commit_slice}}
+                                if cur_col in collections:
+                                    _copy_data(collection=cur_col, condition=condition, source_db=source_db,
+                                               target_db=target_db, verbose=False)
+
+                            # check if file action references must be copied
+                            if cur_col == 'file_action' and \
+                                    not collections.isdisjoint(set(file_action_ref_collections)):
+                                file_actions = [file_action['_id'] for file_action in
+                                                source_db.file_action.find({'commit_id': {'$in': cur_commit_slice}})]
+                                if True:
+                                    for cur_faref_col in file_action_ref_collections:
+                                        if cur_faref_col in collections:
+                                            _copy_data(collection=cur_faref_col,
+                                                       condition={'file_action_id': {'$in': file_actions}},
+                                                       source_db=source_db, target_db=target_db, verbose=False)
+                        print((i + 1) * 100, 'commits done')
+
+        if not collections.isdisjoint(
+                (set().union(its_ref_collections, issue_ref_collections))):
+            print('copying data that references issue_system')
+            for issue_system in source_db.issue_system.find({'project_id': project['_id']}, no_cursor_timeout=True):
+                for cur_col in its_ref_collections:
+                    if cur_col in collections:
+                        _copy_data(collection=cur_col, condition={'issue_system_id': issue_system['_id']},
+                                   source_db=source_db, target_db=target_db)
+
+                if not collections.isdisjoint(set(issue_ref_collections)):
+                    issues = [issue['_id'] for issue in
+                              source_db.issue.find({'issue_system_id': issue_system['_id']}, {'_id': 1})]
+                    for cur_col in issue_ref_collections:
+                        if cur_col in collections:
+                            _copy_data(collection=cur_col, condition={'issue_id': {'$in': issues}},
+                                       source_db=source_db, target_db=target_db, verbose=False)
+
+        if not collections.isdisjoint(set(ml_ref_collections)):
+            print("copying data that references mailing_list")
+            for mailing_list in source_db.mailing_list.find({'project_id': project['_id']}):
+                for cur_col in ml_ref_collections:
+                    if cur_col in collections:
+                        _copy_data(collection=cur_col, condition={'mailing_list_id': mailing_list['_id']},
+                                   source_db=source_db, target_db=target_db)
+
+        if not collections.isdisjoint(
+                (set().union(pr_ref_collections, prsystem_ref_collections, prreview_ref_collections))):
+            print('copying data that references pull_request_system')
+            for pull_request_system in source_db.pull_request_system.find({'project_id': project['_id']},
+                                                                          no_cursor_timeout=True):
+                for cur_col in prsystem_ref_collections:
+                    if cur_col in collections:
+                        _copy_data(collection=cur_col, condition={'pull_request_system_id': pull_request_system['_id']},
+                                   source_db=source_db, target_db=target_db)
+
+                if not collections.isdisjoint(set().union(pr_ref_collections, prreview_ref_collections)):
+                    pull_requests = [pull_request['_id'] for pull_request in
+                                     source_db.pull_request.find({'pull_request_system_id': pull_request_system['_id']},
+                                                                 {'_id': 1})]
+                    for cur_col in pr_ref_collections:
+                        if cur_col in collections:
+                            _copy_data(collection=cur_col, condition={'pull_request_id': {'$in': pull_requests}},
+                                       source_db=source_db, target_db=target_db, verbose=False)
+
+                    if not collections.isdisjoint(set(prreview_ref_collections)):
+                        pull_request_reviews = [pull_request_review['_id'] for pull_request_review in
+                                                source_db.pull_request_review.find(
+                                                    {'pull_request_id': {'$in': pull_requests}}, {'_id': 1})]
+                        for cur_col in prreview_ref_collections:
+                            if cur_col in collections:
+                                _copy_data(collection=cur_col,
+                                           condition={'pull_request_review_id': {'$in': pull_request_reviews}},
+                                           source_db=source_db, target_db=target_db, verbose=False)
+
+
+def _copy_data(collection, condition, source_db, target_db, verbose=True):
+    """
+    Helper function for copying data between databases.  Copies all data of the that matches the condition between the
+    provided databases.
+    """
+    if verbose:
+        print("copying data for collection %s" % collection)
+    if source_db[collection].count_documents(condition) > 0:
+        data = source_db[collection].find(condition, no_cursor_timeout=True)
+        try:
+            target_db[collection].insert_many(data, ordered=False)
+        except BulkWriteError:
+            pass
