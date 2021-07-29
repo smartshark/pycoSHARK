@@ -608,3 +608,134 @@ def _copy_data(collection, condition, source_db, target_db, verbose=True):
             target_db[collection].insert_many(data, ordered=False)
         except BulkWriteError:
             pass
+
+
+def delete_projects(
+        *, projects,
+        db_name='smartshark',
+        db_user=None,
+        db_password=None,
+        db_hostname='localhost',
+        db_port=27017,
+        db_authentication_db=None,
+        db_ssl=False,
+        ):
+    """
+    Delete a list of project from a database.
+
+    :param projects: List of projects that should be copied (required)
+    :param db_name: name of the source database. Default: 'smartshark'
+    :param db_user: user name for the source database. Default: None
+    :param db_password: password for the source database. Default: None
+    :param db_hostname: host of the source database Default: 'localhost'
+    :param db_port: port of the source database. Default: 27017
+    :param db_authentication_db: authentication db of the source database. Default: None
+    :param db_ssl:  whether SSL is used for the connection to the source database. Default: None
+    """
+
+    project_ref_collections = ['vcs_system', 'issue_system', 'mailing_list', 'pull_request_system']
+    vcs_ref_collections = ['branch', 'tag', 'file', 'commit', 'travis_build']
+    commit_ref_collections = ['clone_instance', 'code_entity_state', 'code_group_state',
+                              'commit_changes', 'file_action', 'refactoring']
+    file_action_ref_collections = ['hunk']
+    its_ref_collections = ['issue']
+    issue_ref_collections = ['issue_comment', 'event']
+    ml_ref_collections = ['message']
+    travis_ref_collections = ['travis_job']
+    prsystem_ref_collections = ['pull_request']
+    pr_ref_collections = ['pull_request_comment', 'pull_request_commit', 'pull_request_event', 'pull_request_file',
+                          'pull_request_file', 'pull_request_review']
+    prreview_ref_collections = ['pull_request_review_comment']
+
+    print("connecting to database")
+    db_uri = create_mongodb_uri_string(db_user, db_password, db_hostname, db_port, db_authentication_db, db_ssl)
+    print(db_uri)
+    db_client = MongoClient(db_uri)
+    db = db_client[db_name]
+
+    for project_name in projects:
+        print('starting for project %s' % project_name)
+        project = db['project'].find_one({'name': project_name})
+        for cur_proref_col in project_ref_collections:
+            if cur_proref_col == 'vcs_system':
+                for vcs_system in db.vcs_system.find({'project_id': project['_id']}):
+                    file_id = vcs_system['repository_file']
+                    fs = gridfs.GridFS(db, collection='repository_data')
+                    fs.delete(file_id)
+
+                    for cur_vcsref_col in vcs_ref_collections:
+                        if cur_vcsref_col == 'commit':
+                            commits = [commit['_id'] for commit in
+                                       db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1})]
+                            print("start copying data that references commit (%i commits total)" % len(commits))
+
+                            for i in range(0, math.ceil(len(commits) / 100)):
+                                slice_start = i * 100
+                                slice_end = min((i + 1) * 100, len(commits))
+                                cur_commit_slice = commits[slice_start:slice_end]
+                                for cur_commitref_col in commit_ref_collections:
+                                    if cur_commitref_col == 'commit_changes':  # special case because no field commit_id
+                                        print('deleting %s' % cur_commitref_col)
+                                        db[cur_commitref_col].delete_many({'old_commit_id': {'$in': cur_commit_slice}})
+                                    if cur_commitref_col == 'file_action':
+                                        file_actions = [file_action['_id'] for file_action in
+                                                        db.file_action.find({'commit_id': {'$in': cur_commit_slice}})]
+                                        for cur_faref_col in file_action_ref_collections:
+                                            print('deleting %s' % cur_faref_col)
+                                            db[cur_faref_col].delete_many({'file_action_id': {'$in': file_actions}})
+                                    print('deleting %s' % cur_commitref_col)
+                                    db[cur_commitref_col].delete_many({'commit_id': {'$in': cur_commit_slice}})
+                                print((i + 1) * 100, 'commits done')
+                        if cur_vcsref_col == 'travis_build':
+                            for cur_travisref_col in travis_ref_collections:
+                                print('deleting %s' % cur_travisref_col)
+                                db[cur_travisref_col].delete_many({'vcs_system_id': vcs_system['_id']})
+
+                        print('deleting %s' % cur_vcsref_col)
+                        db[cur_vcsref_col].delete_many({'vcs_system_id': vcs_system['_id']})
+
+            if cur_proref_col == 'issue_system':
+                for issue_system in db.issue_system.find({'project_id': project['_id']}):
+                    for cur_itsref_col in its_ref_collections:
+                        if cur_itsref_col == 'issue':
+                            issues = [issue['_id'] for issue in
+                                      db.issue.find({'issue_system_id': issue_system['_id']}, {'_id': 1})]
+                            for cur_issueref_col in issue_ref_collections:
+                                print('deleting %s' % cur_issueref_col)
+                                db[cur_issueref_col].delete_many({'issue_id': {'$in': issues}})
+                        print('deleting %s' % cur_itsref_col)
+                        db[cur_itsref_col].delete_many({'issue_system_id': issue_system['_id']})
+
+            if cur_proref_col == 'mailing_list':
+                for mailing_list in db.mailing_list.find({'project_id': project['_id']}):
+                    for cur_mlref_col in ml_ref_collections:
+                        print('deleting %s' % cur_mlref_col)
+                        db[cur_mlref_col].delete_many({'mailing_list_id': mailing_list['_id']})
+
+            if cur_proref_col == 'pull_request_system':
+                for pull_request_system in db.pull_request_system.find({'project_id': project['_id']},
+                                                                       no_cursor_timeout=True):
+
+                    for cur_prsysref_col in prsystem_ref_collections:
+                        if cur_prsysref_col == 'pull_request':
+                            pull_requests = [pull_request['_id'] for pull_request in
+                                             db.pull_request.find({'pull_request_system_id':
+                                                                       pull_request_system['_id']}, {'_id': 1})]
+                            for cur_prref_col in pr_ref_collections:
+                                if cur_prref_col == 'pull_request_review':
+                                    pull_request_reviews = [pull_request_review['_id'] for pull_request_review in
+                                                            db.pull_request_review.find({'pull_request_id':
+                                                                                             {'$in': pull_requests}},
+                                                                                        {'_id': 1})]
+                                    for cur_prreviewref_col in prreview_ref_collections:
+                                        print('deleting %s' % cur_prreviewref_col)
+                                        db[cur_prreviewref_col].delete_many({'pull_request_review_id':
+                                                                                 {'$in': pull_request_reviews}})
+                                print('deleting %s' % cur_prref_col)
+                                db[cur_prref_col].delete_many({'pull_request_id': {'$in': pull_requests}})
+                        print('deleting %s' % cur_prsysref_col)
+                        db[cur_prsysref_col].delete_many({'pull_request_system_id': pull_request_system['_id']})
+
+            print('deleting %s' % cur_proref_col)
+            db[cur_proref_col].delete_many({'project_id': project['_id']})
+        db['project'].delete_one({'name': project_name})
