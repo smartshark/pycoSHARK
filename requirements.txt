@@ -1,5 +1,5 @@
 mongoengine
 pymongo
 python-dateutil
-python-Levenshtein
+textdistance
 networkx
