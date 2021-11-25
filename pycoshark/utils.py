@@ -9,7 +9,7 @@ from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 from mongoengine import connection, Document
 from dateutil.relativedelta import relativedelta
-from Levenshtein import distance
+from textdistance import levenshtein
 
 from pycoshark.mongomodels import *
 
@@ -345,7 +345,7 @@ def heuristic_renames(vcs_system_id, revision_hash):
         min_dist = float('inf')
         probable_file = None
         for new_file in new_files:
-            d = distance(old_file, new_file)
+            d = levenshtein(old_file, new_file)
             if d < min_dist:
                 min_dist = d
                 probable_file = new_file
