@@ -459,6 +459,7 @@ def copy_projects(
         if not collections.isdisjoint(
                 (set().union(vcs_ref_collections,
                              commit_ref_collections,
+                             travis_ref_collections,
                              file_action_ref_collections,
                              ['repository_file']))):
             print('copying data that references vcs_system...')
@@ -498,13 +499,17 @@ def copy_projects(
                                            source_db=source_db, target_db=target_db, verbose=False)
 
                 if not collections.isdisjoint(set(travis_ref_collections)):
-                    print("copying data that references travis_job")
-                    travis_builds = [travis_build for travis_build in
+                    print("copying data that references travis_build")
+                    travis_builds = [travis_build['_id'] for travis_build in
                                      source_db.travis_build.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1})]
-                    for cur_col in travis_ref_collections:
-                        if cur_col in collections:
-                            _copy_data(collection=cur_col, condition={'build_id': {'$in': travis_builds}},
-                                       source_db=source_db, target_db=target_db, verbose=False)
+                    for i in range(0, math.ceil(len(travis_builds)/50)):
+                        slice_start = i * 100
+                        slice_end = min((i+1) * 100, len(travis_builds))
+                        cur_build_slice = travis_builds[slice_start:slice_end]
+                        for cur_col in travis_ref_collections:
+                            if cur_col in collections:
+                                _copy_data(collection=cur_col, condition={'build_id': {'$in': cur_build_slice}},
+                                           source_db=source_db, target_db=target_db, verbose=False)
 
                 if not collections.isdisjoint(set().union(commit_ref_collections, file_action_ref_collections)):
                     commits = [commit['_id'] for commit in
