@@ -10,7 +10,7 @@ setup(
     name='pycoSHARK',
     version=pycoshark.__version__,
     description='Basic MongoDB Models for smartSHARK.',
-    install_requires=['mongoengine', 'pymongo', 'python-dateutil', 'textdistance', 'networkx'],
+    install_requires=['mongoengine==0.23.1', 'pymongo==3.12.2', 'python-dateutil', 'textdistance', 'networkx'],
     author='ftrautsch',
     author_email='fabian.trautsch@uni-goettingen.de',
     url='https://github.com/smartshark/pycoSHARK',
