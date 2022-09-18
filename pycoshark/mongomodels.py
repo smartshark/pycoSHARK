@@ -1,3 +1,4 @@
+from datetime import datetime
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
     DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField, FloatField
 import hashlib
@@ -984,6 +985,8 @@ class Tag(Document):
     :property tagger_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.People` id of the person that created the tag
     :property date: (:class:`~mongoengine.fields.DateTimeField`)  date when the tag was created
     :property date_offset: (:class:`~mongoengine.fields.IntField`)  offset for the date
+    :property stored_at: (:class:`~mongoengine.fields.DateTimeField`)  date when the tag was created
+    :property deleted_at: (:class:`~mongoengine.fields.DateTimeField`)  date when the tag was mark as deleted
 
     """
     meta = {
@@ -1005,6 +1008,8 @@ class Tag(Document):
     tagger_id = ObjectIdField()
     date = DateTimeField()
     date_offset = IntField()
+    stored_at = DateTimeField()
+    deleted_at = DateTimeField()
 
     def __eq__(self, other):
         return self.commit_id, self.name == other.commit_id, other.name
@@ -1067,6 +1072,9 @@ class Commit(Document):
     :property validations: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of different validations on this commit
     :property fixed_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
     :property szz_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` issues linked by the SZZ algorithm
+    :property modified_date: (:class:`~mongoengine.fields.DateTimeField`) date of modification of this record. If this is None then it will store current data as initial modified_date
+    :property previous_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) It contains change history.
+    :property deleted_at: (:class:`~mongoengine.fields.DateTimeField`) date when commit marked as deleted
     """
 
     meta = {
@@ -1096,7 +1104,9 @@ class Commit(Document):
     validations = ListField(StringField(max_length=50))
     fixed_issue_ids = ListField(ObjectIdField())
     szz_issue_ids = ListField(ObjectIdField())
-
+    modified_date = DateTimeField(default=datetime.now)
+    previous_states = ListField(DictField())
+    deleted_at = DateTimeField()
 
 class Branch(Document):
     """
@@ -1436,4 +1446,3 @@ class StaticWarning(Document):
     commit_id = ObjectIdField(required=True)
     file_id = ObjectIdField(required=True)
     linter = ListField(DictField())
-    metrics = DictField()
