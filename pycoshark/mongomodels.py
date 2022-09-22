@@ -985,8 +985,9 @@ class Tag(Document):
     :property tagger_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.People` id of the person that created the tag
     :property date: (:class:`~mongoengine.fields.DateTimeField`)  date when the tag was created
     :property date_offset: (:class:`~mongoengine.fields.IntField`)  offset for the date
-    :property stored_at: (:class:`~mongoengine.fields.DateTimeField`)  date when the tag was created
-    :property deleted_at: (:class:`~mongoengine.fields.DateTimeField`)  date when the tag was mark as deleted
+    :property stored_at: (:class:`~mongoengine.fields.IntField`)  latest time when the tag was created
+    :property deleted_at: (:class:`~mongoengine.fields.IntField`)  time when the tag was not found, Null value means that the tag is either recreated or still exists
+    :property previous_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) It contains change history for tag.
 
     """
     meta = {
@@ -1010,6 +1011,7 @@ class Tag(Document):
     date_offset = IntField()
     stored_at = DateTimeField()
     deleted_at = DateTimeField()
+    previous_states = ListField(DictField())
 
     def __eq__(self, other):
         return self.commit_id, self.name == other.commit_id, other.name
@@ -1062,7 +1064,7 @@ class Commit(Document):
     :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.People` id of the person that authored this commit
     :property author_date: (:class:`~mongoengine.fields.DateTimeField`)  date of the authored commit
     :property author_date_offset: (:class:`~mongoengine.fields.IntField`)  offset for the author date
-    :property committer_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.People` id of the person that comitted this commit
+    :property committer_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.People` id of the person that committed this commit
     :property committer_date: (:class:`~mongoengine.fields.DateTimeField`)  date of the committed commit
     :property committer_date_offset: (:class:`~mongoengine.fields.IntField`)  offset for the committer date
     :property message: (:class:`~mongoengine.fields.StringField`) message of the commit
@@ -1072,6 +1074,7 @@ class Commit(Document):
     :property validations: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  list of different validations on this commit
     :property fixed_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` ids linked to this commit
     :property szz_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` issues linked by the SZZ algorithm
+    :property stored_date: (:class:`~mongoengine.fields.DateTimeField`) date of the commit stored in database. If this is None then it will store committer_date as initial stored_date
     :property modified_date: (:class:`~mongoengine.fields.DateTimeField`) date of modification of this record. If this is None then it will store current data as initial modified_date
     :property previous_states: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.DictField`)) It contains change history.
     :property deleted_at: (:class:`~mongoengine.fields.DateTimeField`) date when commit marked as deleted
