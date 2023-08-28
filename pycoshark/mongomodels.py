@@ -215,6 +215,32 @@ class PullRequestSystem(Document):
     last_updated = DateTimeField()
 
 
+class CISystem(Document):
+    """
+    CISystem class.
+    Inherits from :class:`mongoengine.Document`
+
+    Index: #url
+
+    ShardKey: url
+
+    :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Project` id to which the CI system belongs
+    :property url: (:class:`~mongoengine.fields.StringField`) url to the CI system
+    :property last_updated: (:class:`~mongoengine.fields.DateTimeField`)  date when the data of the CI system was last updated in the database
+    """
+
+    meta = {
+        'indexes': [
+            '#url'
+        ],
+        'shard_key': ('url', ),
+    }
+
+    project_id = ObjectIdField(required=True)
+    url = StringField(required=True)
+    last_updated = DateTimeField()
+
+
 class PullRequest(Document):
     """
     PullRequest class.
