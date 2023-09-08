@@ -1,5 +1,6 @@
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
-    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField, FloatField
+    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField, FloatField, \
+    EmbeddedDocumentListField
 import hashlib
 
 
@@ -239,6 +240,231 @@ class CISystem(Document):
     project_id = ObjectIdField(required=True)
     url = StringField(required=True)
     last_updated = DateTimeField()
+
+
+class Workflow(Document):
+    """
+    `Represents a workflow in a collection.
+
+    This class inherits from :class:`~mongoengine.Document` and defines the schema for a workflow.
+
+    :property workflow_id: (:class:`~mongoengine.fields.IntField`) Unique identifier for the workflow.
+    :property name: (:class:`~mongoengine.fields.StringField`) Name of the workflow.
+    :property path: (:class:`~mongoengine.fields.StringField`) Path of the workflow (default is None).
+    :property state: (:class:`~mongoengine.fields.StringField`) Current state of the workflow.
+    :property created_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the workflow was created.
+    :property updated_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the workflow was last updated.
+    :property project_url: (:class:`~mongoengine.fields.StringField`) URL of the associated project (default is None).
+    :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated project (default is None).
+    :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated VCS system (default is None).`
+    """
+    meta = {
+        'indexes': [
+            'ci_system_id'
+        ],
+        'shard_key': ('external_id', 'ci_system_id'),
+    }
+
+    ci_system_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['ci_system_id'])
+    name = StringField()
+    path = StringField(default=None)
+    state = StringField()
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+    project_url = StringField(default=None)
+    project_id = ObjectIdField(default=None)
+    vcs_system_id = ObjectIdField(default=None)
+
+
+class RunPullRequest(EmbeddedDocument):
+    """
+    Represents an embedded document for a pull request in a run.
+
+    This class defines the schema for an embedded document that represents a pull request within a run.
+
+    :property pull_request_id: (:class:`~mongoengine.fields.IntField`) Unique identifier for the pull request.
+    :property pull_request_number: (:class:`~mongoengine.fields.IntField`) Number of the pull request.
+
+    :property target_id: (:class:`~mongoengine.fields.IntField`) ID of the target branch.
+    :property target_branch: (:class:`~mongoengine.fields.StringField`) Name of the target branch.
+    :property target_sha: (:class:`~mongoengine.fields.StringField`) SHA of the target branch.
+    :property target_url: (:class:`~mongoengine.fields.StringField`) URL of the target branch.
+
+    :property source_id: (:class:`~mongoengine.fields.IntField`) ID of the source branch.
+    :property source_branch: (:class:`~mongoengine.fields.StringField`) Name of the source branch.
+    :property source_sha: (:class:`~mongoengine.fields.StringField`) SHA of the source branch.
+    :property source_url: (:class:`~mongoengine.fields.StringField`) URL of the source branch.
+    """
+    pull_request_id = IntField()
+    pull_request_number = IntField()
+
+    target_id = IntField()
+    target_branch = StringField()
+    target_sha = StringField()
+    target_url = StringField()
+
+    source_id = IntField()
+    source_branch = StringField()
+    source_sha = StringField()
+    source_url = StringField()
+
+
+class Run(Document):
+    """
+    Represents a collection of runs.
+
+    This class defines the schema for a collection of runs, typically associated with workflows.
+
+    :property run_id: (:class:`~mongoengine.fields.IntField`) Unique identifier for the run.
+    :property run_number: (:class:`~mongoengine.fields.IntField`) Number assigned to the run.
+    :property event: (:class:`~mongoengine.fields.StringField`) Event associated with the run.
+    :property status: (:class:`~mongoengine.fields.StringField`) Current status of the run.
+    :property conclusion: (:class:`~mongoengine.fields.StringField`) Conclusion of the run.
+    :property workflow_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated workflow.
+    :property pull_requests: (:class:`~mongoengine.fields.EmbeddedDocumentListField`) List of embedded documents representing pull requests (default is an empty list).
+    :property created_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the run was created.
+    :property updated_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the run was last updated.
+    :property run_attempt: (:class:`~mongoengine.fields.IntField`) Number indicating the attempt of the run.
+    :property run_started_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the run started (default is None).
+
+    :property triggering_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the triggering commit (default is None).
+    :property triggering_repository_url: (:class:`~mongoengine.fields.StringField`) URL of the triggering repository (default is None).
+    :property triggering_commit_sha: (:class:`~mongoengine.fields.StringField`) SHA of the triggering commit.
+    :property triggering_commit_branch: (:class:`~mongoengine.fields.StringField`) Branch of the triggering commit.
+    :property triggering_commit_message: (:class:`~mongoengine.fields.StringField`) Message associated with the triggering commit.
+    :property triggering_commit_timestamp: (:class:`~mongoengine.fields.DateTimeField`) Timestamp of the triggering commit.
+    """
+    meta = {
+        'indexes': [
+            'workflow_id'
+        ],
+        'shard_key': ('external_id', 'workflow_id'),
+    }
+
+    external_id = StringField(unique_with=['workflow_id'])
+    run_number = IntField()
+    event = StringField()
+    status = StringField()
+    conclusion = StringField()
+    workflow_id = ObjectIdField(required=True)
+    pull_requests = EmbeddedDocumentListField(RunPullRequest, default=[])
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+    run_attempt = IntField()
+    run_started_at = DateTimeField(default=None)
+
+    triggering_commit_id = ObjectIdField(default=None)
+    triggering_repository_url = StringField(default=None)
+    triggering_commit_sha = StringField()
+    triggering_commit_branch = StringField()
+    triggering_commit_message = StringField()
+    triggering_commit_timestamp = DateTimeField()
+
+
+class JobStep(EmbeddedDocument):
+    """
+   Represents an embedded document for a job step.
+
+   This class defines the schema for an embedded document that represents a step within a job.
+
+   :property name: (:class:`~mongoengine.fields.StringField`) Name of the job step.
+   :property status: (:class:`~mongoengine.fields.StringField`) Current status of the job step.
+   :property conclusion: (:class:`~mongoengine.fields.StringField`) Conclusion of the job step.
+   :property number: (:class:`~mongoengine.fields.IntField`) Number assigned to the job step.
+   :property started_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job step started.
+   :property completed_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job step completed.
+   """
+    name = StringField()
+    status = StringField()
+    conclusion = StringField()
+    number = IntField()
+    started_at = DateTimeField()
+    completed_at = DateTimeField()
+
+
+class Job(Document):
+    """
+    Represents a collection of jobs.
+
+    This class defines the schema for a collection of jobs, typically associated with runs.
+
+    :property job_id: (:class:`~mongoengine.fields.IntField`) Unique identifier for the job.
+    :property name: (:class:`~mongoengine.fields.StringField`) Name of the job.
+    :property run_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated run.
+    :property head_sha: (:class:`~mongoengine.fields.StringField`) SHA of the head commit.
+    :property run_attempt: (:class:`~mongoengine.fields.IntField`) Number indicating the attempt of the run.
+    :property status: (:class:`~mongoengine.fields.StringField`) Current status of the job.
+    :property conclusion: (:class:`~mongoengine.fields.StringField`) Conclusion of the job.
+    :property started_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job started.
+    :property completed_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job completed.
+    :property steps: (:class:`~mongoengine.fields.EmbeddedDocumentListField`) List of embedded documents representing job steps (default is an empty list).
+
+    :property runner_id: (:class:`~mongoengine.fields.IntField`) ID of the runner.
+    :property runner_name: (:class:`~mongoengine.fields.StringField`) Name of the runner.
+    :property runner_group_id: (:class:`~mongoengine.fields.IntField`) ID of the runner group.
+    :property runner_group_name: (:class:`~mongoengine.fields.StringField`) Name of the runner group.
+    """
+
+    meta = {
+        'indexes': [
+            'run_id'
+        ],
+        'shard_key': ('external_id', 'run_id'),
+    }
+    external_id = StringField(unique_with=['run_id'])
+    name = StringField()
+    run_id = ObjectIdField(required=True)
+    head_sha = StringField()
+    run_attempt = IntField()
+    status = StringField()
+    conclusion = StringField()
+    started_at = DateTimeField()
+    completed_at = DateTimeField()
+    steps = EmbeddedDocumentListField(JobStep, default=[])
+
+    runner_id = IntField()
+    runner_name = StringField()
+    runner_group_id = IntField()
+    runner_group_name = StringField()
+
+
+class Artifact(Document):
+    """
+   Represents a collection of artifacts.
+
+   This class defines the schema for a collection of artifacts, which can be associated with projects.
+
+   :property artifact_id: (:class:`~mongoengine.fields.IntField`) Unique identifier for the artifact.
+   :property name: (:class:`~mongoengine.fields.StringField`) Name of the artifact.
+   :property size_in_bytes: (:class:`~mongoengine.fields.IntField`) Size of the artifact in bytes (default is None).
+   :property archive_download_url: (:class:`~mongoengine.fields.StringField`) URL for downloading the artifact (default is None).
+   :property expired: (:class:`~mongoengine.fields.BooleanField`) Indicates whether the artifact has expired.
+   :property created_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact was created.
+   :property updated_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact was last updated.
+   :property expires_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact is set to expire.
+   :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated project (default is None).
+   :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated VCS system (default is None).
+   """
+
+    meta = {
+        'indexes': [
+            'ci_system_id'
+        ],
+        'shard_key': ('external_id', 'ci_system_id'),
+    }
+
+    ci_system_id = ObjectIdField(required=True)
+    external_id = StringField(unique_with=['ci_system_id'])
+    name = StringField()
+    size_in_bytes = IntField(default=None)
+    archive_download_url = StringField(default=None)
+    expired = BooleanField()
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+    expires_at = DateTimeField()
+    project_id = ObjectIdField(default=None)
+    vcs_system_id = ObjectIdField(default=None)
 
 
 class PullRequest(Document):
