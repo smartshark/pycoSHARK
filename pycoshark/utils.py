@@ -102,7 +102,7 @@ def jira_is_resolved_and_fixed(issue):
     # then we check all events related to the issue
     current_status = None
     current_resolution = None
-    for e in Event.objects(issue_id=issue.id).order_by('created_at'):
+    for e in IssueEvent.objects(issue_id=issue.id).order_by('created_at'):
         if e.status is not None and e.status.lower()=='status' and e.new_value is not None:
             current_status = e.new_value.lower()
         if e.status is not None and e.status.lower() == 'resolution' and e.new_value is not None:
@@ -744,3 +744,84 @@ def delete_projects(
             print('deleting %s' % cur_proref_col)
             db[cur_proref_col].delete_many({'project_id': project['_id']})
         db['project'].delete_one({'name': project_name})
+
+
+def delete_last_system_data_on_failure(
+        system,
+        url,
+        db_name='smartshark',
+        db_user=None,
+        db_password=None,
+        db_hostname='localhost',
+        db_port=27017,
+        db_authentication_db=None,
+        db_ssl=False, ):
+    """
+       Delete the last system data on failure.
+
+       :param system: The system name.
+       :param url: The URL associated with the system.
+       :param db_name: The name of the MongoDB database (default is 'smartshark').
+       :param db_user: The username for database authentication.
+       :param db_password: The password for database authentication.
+       :param db_hostname: The hostname of the MongoDB server (default is 'localhost').
+       :param db_port: The port number of the MongoDB server (default is 27017).
+       :param db_authentication_db: The authentication database name.
+       :param db_ssl: Enable SSL connection to the database (default is False).
+       """
+
+    uri = create_mongodb_uri_string(db_user, db_password, db_hostname, db_port, db_authentication_db, db_ssl)
+
+    db_client = MongoClient(uri)
+    db = db_client[db_name]
+
+    last_system_id = get_last_system_id(system, url, db)
+
+    if 'mailing' in system:
+        for message in db['message'].find({'mailing_system_ids': last_system_id}):
+            if len(message['mailing_system_ids']) > 1:
+                message['mailing_system_ids'].remove(last_system_id)
+                db['message'].update_one({'_id': message['_id']}, {'$set': message}, upsert=False)
+            else:
+                db['message'].delete_one({'_id': message['_id']})
+
+    elif 'pull_request' in system:
+        for pr in db['pull_request'].find({'pull_request_system_ids': last_system_id}):
+            if len(pr['pull_request_system_ids']) > 1:
+                pr['pull_request_system_ids'].remove(last_system_id)
+                db['pull_request'].update_one({'_id': pr['_id']}, {'$set': pr}, upsert=False)
+            else:
+                db['pull_request_comment'].delete_many({'pull_request_id': pr['_id']})
+                db['pull_request_event'].delete_many({'pull_request_id': pr['_id']})
+                db['pull_request_file'].delete_many({'pull_request_id': pr['_id']})
+                for review in db['pull_request_review'].find({'pull_request_id': pr['_id']}):
+                    db['pull_request_review_comment'].delete_many({'pull_request_review_id': review['_id']})
+                db['pull_request_review'].delete_many({'pull_request_id': pr['_id']})
+
+                db['pull_request'].delete_one({'_id': pr['_id']})
+
+    db[system].delete_one({'_id': last_system_id})
+
+
+def get_last_system_id(system, url, db=None):
+    """
+       Get the last system ID for a given system and URL from a MongoDB database.
+
+       This function retrieves the most recent system ID associated with the specified
+       system and URL from the given MongoDB database.
+
+       :param system: The name of the system.
+       :param url: The URL associated with the system.
+       :param db: The MongoDB database object (optional). If not provided, the function
+                  will use the default database.
+
+       :return: The last system ID found for the given system and URL, or None if not found.
+       """
+
+    last_system = db[system].find_one({'url': url}, sort=[('collection_date', -1)])
+
+    if last_system:
+        last_system_id = last_system['_id']
+    else:
+        last_system_id = None
+    return last_system_id
