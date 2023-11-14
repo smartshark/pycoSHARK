@@ -800,6 +800,15 @@ def delete_last_system_data_on_failure(
 
                 db['pull_request'].delete_one({'_id': pr['_id']})
 
+    elif 'ci_travis' in  system:
+        for build in db['travis_build'].find({'ci_system_ids': last_system_id}):
+            if len(build['ci_system_ids']) > 1:
+                build['ci_system_ids'].remove(last_system_id)
+                db['travis_build'].update_one({'_id': build['_id']}, {'$set': build}, upsert=False)
+            else:
+                db['travis_job'].delete_many({'build_id': build['_id']})
+                db['travis_build'].delete_one({'_id': build['_id']})
+
     db[system].delete_one({'_id': last_system_id})
 
 

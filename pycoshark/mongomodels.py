@@ -74,6 +74,10 @@ class CiSystem(BaseSystem):
     pass
 
 
+class CiTravisSystem(BaseSystem):
+    pass
+
+
 class TravisBuild(Document):
     meta = {
         'indexes': [
@@ -82,10 +86,10 @@ class TravisBuild(Document):
         ]
     }
 
-    tr_id = IntField(unique=True)
+    tr_id = IntField()
     ci_system_ids = ListField(required=True)
-    vcs_system_id = ObjectIdField()
-    commit_id = ObjectIdField()
+    project = ObjectIdField()
+    commit_id = StringField()
     number = IntField(required=True)
     state = StringField(max_length=8, required=True)
     duration = LongField(default=None)
