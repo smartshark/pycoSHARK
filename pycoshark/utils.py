@@ -809,6 +809,20 @@ def delete_last_system_data_on_failure(
                 db['travis_job'].delete_many({'build_id': build['_id']})
                 db['travis_build'].delete_one({'_id': build['_id']})
 
+    elif 'ci_system' in system:
+        for workflow in db['action_workflow'].find({'ci_system_ids': last_system_id}):
+            if len(workflow['ci_system_ids']) > 1:
+                workflow['ci_system_ids'].remove(last_system_id)
+                db['action_workflow'].update_one({'_id': workflow['_id']}, {'$set': workflow}, upsert=False)
+            else:
+                for run in db['action_run'].find({'workflow_id': workflow['_id']}):
+                    db['action_job'].delete_many({'run_id': run['_id']})
+                    db['run_artifact'].delete_many({'run_id': run['_id']})
+
+                db['action_run'].delete_many({'workflow_id': workflow['_id']})
+
+                db['action_workflow'].delete_one({'_id': workflow['_id']})
+
     db[system].delete_one({'_id': last_system_id})
 
 

@@ -102,8 +102,8 @@ class TravisBuild(Document):
     def __repr__(self):
         return "<TravisBuild vcs_system_id:%s commit_id:%s number:%s duration:%s event_type:%s " \
                "pr_number:%s started_at:%s finished_at:%s stages:%s>" % \
-               (self.vcs_system_id, self.commit_id, self.number, self.duration, self.event_type, self.pr_number,
-                self.started_at, self.finished_at, self.stages)
+            (self.vcs_system_id, self.commit_id, self.number, self.duration, self.event_type, self.pr_number,
+             self.started_at, self.finished_at, self.stages)
 
 
 class TravisJob(Document):
@@ -128,8 +128,8 @@ class TravisJob(Document):
     def __repr__(self):
         return "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s " \
                "config:%s>" % \
-               (self.allow_failure, self.number, self.state, self.started_at, self.finished_at, self.stages,
-                self.metrics, self.config)
+            (self.allow_failure, self.number, self.state, self.started_at, self.finished_at, self.stages,
+             self.metrics, self.config)
 
 
 class PullRequestSystem(BaseSystem):
@@ -498,7 +498,24 @@ class ActionWorkflow(Document):
     updated_at = DateTimeField()
     project_url = StringField(default=None)
     project_id = ObjectIdField(default=None)
-    vcs_system_id = ObjectIdField(default=None)
+
+
+class RunPullRequest(EmbeddedDocument):
+    """
+    RunPullRequest embedded document schema"""
+
+    pull_request_id = IntField()
+    pull_request_number = IntField()
+
+    target_id = IntField()
+    target_branch = StringField()
+    target_sha = StringField()
+    target_url = StringField()
+
+    source_id = IntField()
+    source_branch = StringField()
+    source_sha = StringField()
+    source_url = StringField()
 
 
 class ActionRun(Document):
@@ -539,7 +556,7 @@ class ActionRun(Document):
     status = StringField()
     conclusion = StringField()
     workflow_id = ObjectIdField(required=True)
-    pull_requests = ListField()
+    pull_requests = EmbeddedDocumentListField(RunPullRequest)
     created_at = DateTimeField()
     updated_at = DateTimeField()
     run_attempt = IntField()
@@ -613,7 +630,7 @@ class ActionJob(Document):
     conclusion = StringField()
     started_at = DateTimeField()
     completed_at = DateTimeField()
-    steps = EmbeddedDocumentListField(JobStep, default=[])
+    steps = EmbeddedDocumentListField(JobStep)
 
     runner_id = IntField()
     runner_name = StringField()
@@ -641,12 +658,12 @@ class RunArtifact(Document):
 
     meta = {
         'indexes': [
-            'ci_system_ids',
+            'run_id',
             'external_id'
         ]
     }
 
-    ci_system_ids = ListField(required=True)
+    run_id = ObjectIdField(required=True)
     external_id = StringField()
     name = StringField()
     size_in_bytes = IntField(default=None)
@@ -656,7 +673,6 @@ class RunArtifact(Document):
     updated_at = DateTimeField()
     expires_at = DateTimeField()
     project_id = ObjectIdField(default=None)
-    vcs_system_id = ObjectIdField(default=None)
 
 
 class IssueSystem(BaseSystem):
@@ -740,11 +756,11 @@ class Issue(Document):
                " priority: %s, affects_versions: %s, components: %s, labels: %s, resolution: %s, fix_versions: %s," \
                "assignee: %s, issue_links: %s, status: %s, time_estimate: %s, environment: %s, creator: %s, " \
                "reporter: %s" % (
-                   self.external_id, self.title, self.desc, self.created_at, self.updated_at, self.issue_type,
-                   self.priority, ','.join(self.affects_versions), ','.join(self.components), ','.join(self.labels),
-                   self.resolution, ','.join(self.fix_versions), self.assignee_id, str(self.issue_links), self.status,
-                   str(self.original_time_estimate), self.environment, self.creator_id, self.reporter_id
-               )
+            self.external_id, self.title, self.desc, self.created_at, self.updated_at, self.issue_type,
+            self.priority, ','.join(self.affects_versions), ','.join(self.components), ','.join(self.labels),
+            self.resolution, ','.join(self.fix_versions), self.assignee_id, str(self.issue_links), self.status,
+            str(self.original_time_estimate), self.environment, self.creator_id, self.reporter_id
+        )
 
 
 class IssueEvent(Document):
@@ -787,15 +803,15 @@ class IssueEvent(Document):
     def __str__(self):
         return "external_id: %s, issue_id: %s, created_at: %s, status: %s, author_id: %s, " \
                "old_value: %s, new_value: %s, commit_id: %s" % (
-                   self.external_id,
-                   self.issue_id,
-                   self.created_at,
-                   self.status,
-                   self.author_id,
-                   self.old_value,
-                   self.new_value,
-                   self.commit_id
-               )
+            self.external_id,
+            self.issue_id,
+            self.created_at,
+            self.status,
+            self.author_id,
+            self.old_value,
+            self.new_value,
+            self.commit_id
+        )
 
 
 class IssueComment(Document):
@@ -1334,9 +1350,9 @@ class CodeEntityState(Document):
     def __repr__(self):
         return "<CodeEntityState s_key:%s long_name:%s commit_id:%s file_id:%s test_type:%s ce_parent_id:%s " \
                "cg_ids:%s ce_type:%s imports:%s start_line:%s end_line:%s start_column:%s end_column: %s metrics: %s>" % \
-               (self.s_key, self.long_name, self.commit_id, self.file_id, self.test_type, self.ce_parent_id,
-                self.cg_ids, self.ce_type, self.imports, self.start_line, self.end_line, self.start_column,
-                self.end_column, self.metrics)
+            (self.s_key, self.long_name, self.commit_id, self.file_id, self.test_type, self.ce_parent_id,
+             self.cg_ids, self.ce_type, self.imports, self.start_line, self.end_line, self.start_column,
+             self.end_column, self.metrics)
 
     @staticmethod
     def calculate_identifier(long_name, commit_id, file_id):
