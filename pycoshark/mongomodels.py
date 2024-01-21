@@ -100,10 +100,10 @@ class TravisBuild(Document):
     stages = ListField(StringField())
 
     def __repr__(self):
-        return "<TravisBuild vcs_system_id:%s commit_id:%s number:%s duration:%s event_type:%s " \
+        return "<TravisBuild commit_id:%s number:%s duration:%s event_type:%s " \
                "pr_number:%s started_at:%s finished_at:%s stages:%s>" % \
-            (self.vcs_system_id, self.commit_id, self.number, self.duration, self.event_type, self.pr_number,
-             self.started_at, self.finished_at, self.stages)
+               (self.commit_id, self.number, self.duration, self.event_type, self.pr_number,
+                self.started_at, self.finished_at, self.stages)
 
 
 class TravisJob(Document):
@@ -128,8 +128,8 @@ class TravisJob(Document):
     def __repr__(self):
         return "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s " \
                "config:%s>" % \
-            (self.allow_failure, self.number, self.state, self.started_at, self.finished_at, self.stages,
-             self.metrics, self.config)
+               (self.allow_failure, self.number, self.state, self.started_at, self.finished_at, self.stages,
+                self.metrics, self.config)
 
 
 class PullRequestSystem(BaseSystem):
@@ -745,7 +745,7 @@ class Issue(Document):
     fix_versions = ListField(StringField())
     assignee_id = ObjectIdField()
     issue_links = ListField(DictField())
-    parent_issue_id = ObjectIdField()
+    parent_issue_id = DynamicField()
     original_time_estimate = IntField()
     environment = StringField()
     platform = StringField()
@@ -756,11 +756,11 @@ class Issue(Document):
                " priority: %s, affects_versions: %s, components: %s, labels: %s, resolution: %s, fix_versions: %s," \
                "assignee: %s, issue_links: %s, status: %s, time_estimate: %s, environment: %s, creator: %s, " \
                "reporter: %s" % (
-            self.external_id, self.title, self.desc, self.created_at, self.updated_at, self.issue_type,
-            self.priority, ','.join(self.affects_versions), ','.join(self.components), ','.join(self.labels),
-            self.resolution, ','.join(self.fix_versions), self.assignee_id, str(self.issue_links), self.status,
-            str(self.original_time_estimate), self.environment, self.creator_id, self.reporter_id
-        )
+                   self.external_id, self.title, self.desc, self.created_at, self.updated_at, self.issue_type,
+                   self.priority, ','.join(self.affects_versions), ','.join(self.components), ','.join(self.labels),
+                   self.resolution, ','.join(self.fix_versions), self.assignee_id, str(self.issue_links), self.status,
+                   str(self.original_time_estimate), self.environment, self.creator_id, self.reporter_id
+               )
 
 
 class IssueEvent(Document):
@@ -795,7 +795,7 @@ class IssueEvent(Document):
     created_at = DateTimeField()
     status = StringField(max_length=50)
     author_id = ObjectIdField()
-    commit_id = ObjectIdField()
+    commit_sha = StringField()
 
     old_value = DynamicField()
     new_value = DynamicField()
@@ -803,16 +803,15 @@ class IssueEvent(Document):
     def __str__(self):
         return "external_id: %s, issue_id: %s, created_at: %s, status: %s, author_id: %s, " \
                "old_value: %s, new_value: %s, commit_id: %s" % (
-            self.external_id,
-            self.issue_id,
-            self.created_at,
-            self.status,
-            self.author_id,
-            self.old_value,
-            self.new_value,
-            self.commit_id
-        )
-
+                   self.external_id,
+                   self.issue_id,
+                   self.created_at,
+                   self.status,
+                   self.author_id,
+                   self.old_value,
+                   self.new_value,
+                   self.commit_sha
+               )
 
 class IssueComment(Document):
     """
