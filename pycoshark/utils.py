@@ -823,6 +823,16 @@ def delete_last_system_data_on_failure(
 
                 db['action_workflow'].delete_one({'_id': workflow['_id']})
 
+    elif 'issue_system' in system:
+        for issue in db['issue'].find({'issue_system_ids': last_system_id}):
+            if len(issue['issue_system_ids']) > 1:
+                issue['issue_system_ids'].remove(last_system_id)
+                db['issue'].update_one({'_id': issue['_id']}, {'$set': issue}, upsert=False)
+            else:
+                db['issue_comment'].delete_many({'issue_id': issue['_id']})
+                db['issue_event'].delete_one({'_id': issue['_id']})
+                db['issue'].delete_one({'_id': issue['_id']})
+
     db[system].delete_one({'_id': last_system_id})
 
 
