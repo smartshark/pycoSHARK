@@ -851,6 +851,9 @@ class IssueComment(Document):
 
 
 class VCSSystem(BaseSystem):
+    meta = {
+        'collection': 'vcs_system'
+    }
     repository_type = StringField(required=True)
     submodules = ListField(ObjectIdField())
     repository_file = FileField(collection_name='repository_data')
