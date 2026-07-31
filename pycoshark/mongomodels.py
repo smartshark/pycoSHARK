@@ -1,18 +1,45 @@
-from mongoengine import Document, StringField, ListField, DateTimeField, IntField, BooleanField, ObjectIdField, \
-    DictField, DynamicField, LongField, EmbeddedDocument, EmbeddedDocumentField, FileField, FloatField, \
-    EmbeddedDocumentListField
+from mongoengine import (
+    Document,
+    StringField,
+    ListField,
+    DateTimeField,
+    IntField,
+    BooleanField,
+    ObjectIdField,
+    DictField,
+    DynamicField,
+    LongField,
+    EmbeddedDocument,
+    EmbeddedDocumentField,
+    FileField,
+    FloatField,
+    EmbeddedDocumentListField,
+)
 import hashlib
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from mongoengine.queryset.queryset import QuerySet
 
 
-class BaseSystem(Document):
-    meta = {
-        'abstract': True,
-        'indexes': [
-            '#url'
-        ]
-    }
+class TypedDocument(Document):
+    """Base class for all mongoengine Documents in this project.
 
-    type_choices = ('github', 'jira', 'bugzilla')
+    This class adds type hints for the `objects`, `id`, and `pk` attributes, which are otherwise not recognized by type checkers.
+    """
+
+    meta = {"abstract": True}
+
+    if TYPE_CHECKING:
+        objects: QuerySet
+        id: Any
+        pk: Any
+
+
+class BaseSystem(TypedDocument):
+    meta = {"abstract": True, "indexes": ["#url"]}
+
+    type_choices = ("github", "jira", "bugzilla")
 
     collection_date = DateTimeField(required=True)
     project_id = ObjectIdField(required=True)
@@ -25,7 +52,7 @@ class MailingSystem(BaseSystem):
     pass
 
 
-class Message(Document):
+class Message(TypedDocument):
     """
     Message class.
     Inherits from :class:`mongoengine.Document`
@@ -47,12 +74,7 @@ class Message(Document):
     :property patches: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.StringField`))  if patches were applied to the message
     """
 
-    meta = {
-        'indexes': [
-            'mailing_system_ids',
-            'message_id'
-        ]
-    }
+    meta = {"indexes": ["mailing_system_ids", "message_id"]}
 
     # PK: message_id
     # Shard Key: message_id, mailing_list_id
@@ -78,13 +100,8 @@ class CiTravisSystem(BaseSystem):
     pass
 
 
-class TravisBuild(Document):
-    meta = {
-        'indexes': [
-            'ci_system_ids',
-            'tr_id'
-        ]
-    }
+class TravisBuild(TypedDocument):
+    meta = {"indexes": ["ci_system_ids", "tr_id"]}
 
     tr_id = IntField()
     ci_system_ids = ListField(required=True)
@@ -100,18 +117,26 @@ class TravisBuild(Document):
     stages = ListField(StringField())
 
     def __repr__(self):
-        return "<TravisBuild vcs_system_id:%s commit_id:%s number:%s duration:%s event_type:%s " \
-               "pr_number:%s started_at:%s finished_at:%s stages:%s>" % \
-            (self.vcs_system_id, self.commit_id, self.number, self.duration, self.event_type, self.pr_number,
-             self.started_at, self.finished_at, self.stages)
+        return (
+            "<TravisBuild vcs_system_id:%s commit_id:%s number:%s duration:%s event_type:%s "
+            "pr_number:%s started_at:%s finished_at:%s stages:%s>"
+            % (
+                self.vcs_system_id,
+                self.commit_id,
+                self.number,
+                self.duration,
+                self.event_type,
+                self.pr_number,
+                self.started_at,
+                self.finished_at,
+                self.stages,
+            )
+        )
 
 
-class TravisJob(Document):
+class TravisJob(TypedDocument):
     meta = {
-        'indexes': [
-            'build_id',
-            'tr_id'
-        ],
+        "indexes": ["build_id", "tr_id"],
     }
     tr_id = IntField()
     build_id = ObjectIdField(required=True)
@@ -126,17 +151,27 @@ class TravisJob(Document):
     job_log = StringField()
 
     def __repr__(self):
-        return "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s " \
-               "config:%s>" % \
-            (self.allow_failure, self.number, self.state, self.started_at, self.finished_at, self.stages,
-             self.metrics, self.config)
+        return (
+            "<TravisJob allow_failure:%s number:%s state:%s started_at:%s finished_at:%s stages:%s metrics:%s "
+            "config:%s>"
+            % (
+                self.allow_failure,
+                self.number,
+                self.state,
+                self.started_at,
+                self.finished_at,
+                self.stages,
+                self.metrics,
+                self.config,
+            )
+        )
 
 
 class PullRequestSystem(BaseSystem):
     pass
 
 
-class PullRequest(Document):
+class PullRequest(TypedDocument):
     """
     PullRequest class.
 
@@ -180,12 +215,7 @@ class PullRequest(Document):
     :property target_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.Commit` commit id if available in local VCSSystem
     """
 
-    meta = {
-        'indexes': [
-            'pull_request_system_ids',
-            'external_id'
-        ]
-    }
+    meta = {"indexes": ["pull_request_system_ids", "external_id"]}
 
     pull_request_system_ids = ListField(required=True)
     external_id = StringField()
@@ -221,7 +251,7 @@ class PullRequest(Document):
     target_commit_id = ObjectIdField()
 
 
-class PullRequestReview(Document):
+class PullRequestReview(TypedDocument):
     """
     PullRequestReview class.
 
@@ -244,12 +274,7 @@ class PullRequestReview(Document):
     :property pull_request_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.PullRequestCommit` pull request commit id (if available)
     """
 
-    meta = {
-        'indexes': [
-            'pull_request_id',
-            'external_id'
-        ]
-    }
+    meta = {"indexes": ["pull_request_id", "external_id"]}
 
     pull_request_id = ObjectIdField(required=True)
     external_id = StringField()
@@ -264,7 +289,7 @@ class PullRequestReview(Document):
     pull_request_commit_id = ObjectIdField()
 
 
-class PullRequestReviewComment(Document):
+class PullRequestReviewComment(TypedDocument):
     """
     PullRequestReviewComment class.
 
@@ -308,12 +333,7 @@ class PullRequestReviewComment(Document):
     :property side: (:class:`~mongoengine.fields.StringField`) position in the diff editor LEFT/RIGHT for deleted or added
     """
 
-    meta = {
-        'indexes': [
-            'pull_request_review_id',
-            'external_id'
-        ]
-    }
+    meta = {"indexes": ["pull_request_review_id", "external_id"]}
 
     pull_request_review_id = ObjectIdField(required=True)
     external_id = StringField()
@@ -345,7 +365,7 @@ class PullRequestReviewComment(Document):
     side = StringField()
 
 
-class PullRequestComment(Document):
+class PullRequestComment(TypedDocument):
     """
     PullRequestComment class.
 
@@ -368,10 +388,7 @@ class PullRequestComment(Document):
     """
 
     meta = {
-        'indexes': [
-            'pull_request_id',
-            'external_id'
-        ],
+        "indexes": ["pull_request_id", "external_id"],
     }
     pull_request_id = ObjectIdField(required=True)
     external_id = StringField()
@@ -382,7 +399,7 @@ class PullRequestComment(Document):
     author_association = StringField()
 
 
-class PullRequestEvent(Document):
+class PullRequestEvent(TypedDocument):
     """
     PullRequestEvent class.
 
@@ -407,12 +424,7 @@ class PullRequestEvent(Document):
     :property additional_data: (:class:`~mongoengine.fields.DictField`) additional data from the backend not common for all event types
     """
 
-    meta = {
-        'indexes': [
-            'pull_request_id',
-            'external_id'
-        ]
-    }
+    meta = {"indexes": ["pull_request_id", "external_id"]}
 
     pull_request_id = ObjectIdField(required=True)
     external_id = StringField()
@@ -427,7 +439,7 @@ class PullRequestEvent(Document):
     additional_data = DictField()
 
 
-class PullRequestFile(Document):
+class PullRequestFile(TypedDocument):
     """
     PullRequestFile class.
     Inherits from :class:`mongoengine.Document`
@@ -449,11 +461,7 @@ class PullRequestFile(Document):
     :property patch: (:class:`~mongoengine.fields.StringField`) diff hunk of the change
     """
 
-    meta = {
-        'indexes': [
-            'pull_request_id'
-        ]
-    }
+    meta = {"indexes": ["pull_request_id"]}
 
     pull_request_id = ObjectIdField(required=True)
     sha = StringField()  # this is not a sha of PullRequestCommit
@@ -467,7 +475,7 @@ class PullRequestFile(Document):
     patch = StringField()
 
 
-class ActionWorkflow(Document):
+class ActionWorkflow(TypedDocument):
     """
     `Represents a workflow in a collection.
 
@@ -483,12 +491,8 @@ class ActionWorkflow(Document):
     :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated project (default is None).
     :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated VCS system (default is None).`
     """
-    meta = {
-        'indexes': [
-            'ci_system_ids',
-            'external_id'
-        ]
-    }
+
+    meta = {"indexes": ["ci_system_ids", "external_id"]}
     ci_system_ids = ListField(required=True)
     external_id = StringField()
     name = StringField()
@@ -518,7 +522,7 @@ class RunPullRequest(EmbeddedDocument):
     source_url = StringField()
 
 
-class ActionRun(Document):
+class ActionRun(TypedDocument):
     """
     Represents a collection of runs.
 
@@ -543,12 +547,8 @@ class ActionRun(Document):
     :property triggering_commit_message: (:class:`~mongoengine.fields.StringField`) Message associated with the triggering commit.
     :property triggering_commit_timestamp: (:class:`~mongoengine.fields.DateTimeField`) Timestamp of the triggering commit.
     """
-    meta = {
-        'indexes': [
-            'workflow_id',
-            'external_id'
-        ]
-    }
+
+    meta = {"indexes": ["workflow_id", "external_id"]}
 
     external_id = StringField()
     run_number = IntField()
@@ -572,17 +572,18 @@ class ActionRun(Document):
 
 class JobStep(EmbeddedDocument):
     """
-   Represents an embedded document for a job step.
+    Represents an embedded document for a job step.
 
-   This class defines the schema for an embedded document that represents a step within a job.
+    This class defines the schema for an embedded document that represents a step within a job.
 
-   :property name: (:class:`~mongoengine.fields.StringField`) Name of the job step.
-   :property status: (:class:`~mongoengine.fields.StringField`) Current status of the job step.
-   :property conclusion: (:class:`~mongoengine.fields.StringField`) Conclusion of the job step.
-   :property number: (:class:`~mongoengine.fields.IntField`) Number assigned to the job step.
-   :property started_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job step started.
-   :property completed_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job step completed.
-   """
+    :property name: (:class:`~mongoengine.fields.StringField`) Name of the job step.
+    :property status: (:class:`~mongoengine.fields.StringField`) Current status of the job step.
+    :property conclusion: (:class:`~mongoengine.fields.StringField`) Conclusion of the job step.
+    :property number: (:class:`~mongoengine.fields.IntField`) Number assigned to the job step.
+    :property started_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job step started.
+    :property completed_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the job step completed.
+    """
+
     name = StringField()
     status = StringField()
     conclusion = StringField()
@@ -591,7 +592,7 @@ class JobStep(EmbeddedDocument):
     completed_at = DateTimeField()
 
 
-class ActionJob(Document):
+class ActionJob(TypedDocument):
     """
     Represents a collection of jobs.
 
@@ -614,12 +615,7 @@ class ActionJob(Document):
     :property runner_group_name: (:class:`~mongoengine.fields.StringField`) Name of the runner group.
     """
 
-    meta = {
-        'indexes': [
-            'run_id',
-            'external_id'
-        ]
-    }
+    meta = {"indexes": ["run_id", "external_id"]}
 
     external_id = StringField()
     name = StringField()
@@ -638,30 +634,25 @@ class ActionJob(Document):
     runner_group_name = StringField()
 
 
-class RunArtifact(Document):
+class RunArtifact(TypedDocument):
     """
-   Represents a collection of artifacts.
+    Represents a collection of artifacts.
 
-   This class defines the schema for a collection of artifacts, which can be associated with projects.
+    This class defines the schema for a collection of artifacts, which can be associated with projects.
 
-   :property artifact_id: (:class:`~mongoengine.fields.IntField`) Unique identifier for the artifact.
-   :property name: (:class:`~mongoengine.fields.StringField`) Name of the artifact.
-   :property size_in_bytes: (:class:`~mongoengine.fields.IntField`) Size of the artifact in bytes (default is None).
-   :property archive_download_url: (:class:`~mongoengine.fields.StringField`) URL for downloading the artifact (default is None).
-   :property expired: (:class:`~mongoengine.fields.BooleanField`) Indicates whether the artifact has expired.
-   :property created_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact was created.
-   :property updated_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact was last updated.
-   :property expires_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact is set to expire.
-   :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated project (default is None).
-   :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated VCS system (default is None).
-   """
+    :property artifact_id: (:class:`~mongoengine.fields.IntField`) Unique identifier for the artifact.
+    :property name: (:class:`~mongoengine.fields.StringField`) Name of the artifact.
+    :property size_in_bytes: (:class:`~mongoengine.fields.IntField`) Size of the artifact in bytes (default is None).
+    :property archive_download_url: (:class:`~mongoengine.fields.StringField`) URL for downloading the artifact (default is None).
+    :property expired: (:class:`~mongoengine.fields.BooleanField`) Indicates whether the artifact has expired.
+    :property created_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact was created.
+    :property updated_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact was last updated.
+    :property expires_at: (:class:`~mongoengine.fields.DateTimeField`) Date and time when the artifact is set to expire.
+    :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated project (default is None).
+    :property vcs_system_id: (:class:`~mongoengine.fields.ObjectIdField`) ID of the associated VCS system (default is None).
+    """
 
-    meta = {
-        'indexes': [
-            'run_id',
-            'external_id'
-        ]
-    }
+    meta = {"indexes": ["run_id", "external_id"]}
 
     run_id = ObjectIdField(required=True)
     external_id = StringField()
@@ -679,7 +670,7 @@ class IssueSystem(BaseSystem):
     pass
 
 
-class Issue(Document):
+class Issue(TypedDocument):
     """
     Issue class.
     Inherits from :class:`mongoengine.Document`
@@ -714,12 +705,8 @@ class Issue(Document):
     :property platform: (:class:`~mongoengine.fields.StringField`) platform that is affected by this issue
     :property is_pull_request: (:class:`~mongoengine.fields.BoleanField`) true if this issue is a pull request, Github issues can be pull requests
     """
-    meta = {
-        'indexes': [
-            'issue_system_ids',
-            'external_id'
-        ]
-    }
+
+    meta = {"indexes": ["issue_system_ids", "external_id"]}
 
     # PK: external_id, issue_system_id
     # Shard Key: external_id, issue_system_id
@@ -752,18 +739,36 @@ class Issue(Document):
     is_pull_request = BooleanField(default=False)
 
     def __str__(self):
-        return "Issue_id: %s, title: %s, desc: %s, created_at: %s, updated_at: %s, issue_type: %s," \
-               " priority: %s, affects_versions: %s, components: %s, labels: %s, resolution: %s, fix_versions: %s," \
-               "assignee: %s, issue_links: %s, status: %s, time_estimate: %s, environment: %s, creator: %s, " \
-               "reporter: %s" % (
-            self.external_id, self.title, self.desc, self.created_at, self.updated_at, self.issue_type,
-            self.priority, ','.join(self.affects_versions), ','.join(self.components), ','.join(self.labels),
-            self.resolution, ','.join(self.fix_versions), self.assignee_id, str(self.issue_links), self.status,
-            str(self.original_time_estimate), self.environment, self.creator_id, self.reporter_id
+        return (
+            "Issue_id: %s, title: %s, desc: %s, created_at: %s, updated_at: %s, issue_type: %s,"
+            " priority: %s, affects_versions: %s, components: %s, labels: %s, resolution: %s, fix_versions: %s,"
+            "assignee: %s, issue_links: %s, status: %s, time_estimate: %s, environment: %s, creator: %s, "
+            "reporter: %s"
+            % (
+                self.external_id,
+                self.title,
+                self.desc,
+                self.created_at,
+                self.updated_at,
+                self.issue_type,
+                self.priority,
+                ",".join(self.affects_versions),
+                ",".join(self.components),
+                ",".join(self.labels),
+                self.resolution,
+                ",".join(self.fix_versions),
+                self.assignee_id,
+                str(self.issue_links),
+                self.status,
+                str(self.original_time_estimate),
+                self.environment,
+                self.creator_id,
+                self.reporter_id,
+            )
         )
 
 
-class IssueEvent(Document):
+class IssueEvent(TypedDocument):
     """
     Event class.
     Inherits from :class:`mongoengine.Document`
@@ -781,10 +786,11 @@ class IssueEvent(Document):
     :property new_value: (:class:`~mongoengine.fields.DynamicField`) value after the event happened
 
     """
+
     meta = {
-        'indexes': [
-            'issue_id',
-            'external_id',
+        "indexes": [
+            "issue_id",
+            "external_id",
         ]
     }
 
@@ -801,20 +807,23 @@ class IssueEvent(Document):
     new_value = DynamicField()
 
     def __str__(self):
-        return "external_id: %s, issue_id: %s, created_at: %s, status: %s, author_id: %s, " \
-               "old_value: %s, new_value: %s, commit_id: %s" % (
-            self.external_id,
-            self.issue_id,
-            self.created_at,
-            self.status,
-            self.author_id,
-            self.old_value,
-            self.new_value,
-            self.commit_id
+        return (
+            "external_id: %s, issue_id: %s, created_at: %s, status: %s, author_id: %s, "
+            "old_value: %s, new_value: %s, commit_id: %s"
+            % (
+                self.external_id,
+                self.issue_id,
+                self.created_at,
+                self.status,
+                self.author_id,
+                self.old_value,
+                self.new_value,
+                self.commit_id,
+            )
         )
 
 
-class IssueComment(Document):
+class IssueComment(TypedDocument):
     """
     IssueComment class.
     Inherits from :class:`mongoengine.Document`
@@ -831,12 +840,7 @@ class IssueComment(Document):
 
     """
 
-    meta = {
-        'indexes': [
-            'issue_id',
-            'external_id'
-        ]
-    }
+    meta = {"indexes": ["issue_id", "external_id"]}
 
     external_id = StringField()
     issue_id = ObjectIdField()
@@ -846,20 +850,22 @@ class IssueComment(Document):
 
     def __str__(self):
         return "external_id: %s, issue_id: %s, created_at: %s, author_id: %s, comment: %s" % (
-            self.external_id, self.issue_id, self.created_at, self.author_id, self.comment
+            self.external_id,
+            self.issue_id,
+            self.created_at,
+            self.author_id,
+            self.comment,
         )
 
 
 class VCSSystem(BaseSystem):
-    meta = {
-        'collection': 'vcs_system'
-    }
+    meta = {"collection": "vcs_system"}
     repository_type = StringField(required=True)
     submodules = ListField(ObjectIdField())
-    repository_file = FileField(collection_name='repository_data')
+    repository_file = FileField(collection_name="repository_data")
 
 
-class VCSSubmodule(Document):
+class VCSSubmodule(TypedDocument):
     """
     VCSSubmodule class.
     Inherits from :class:`mongoengine.Document`
@@ -871,12 +877,8 @@ class VCSSubmodule(Document):
     :property path: (:class:`~mongoengine.fields.StringField`) submodule path relative to the parent repository root
     :property project_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.VCSSystem` id of this submodule
     """
-    meta = {
-        'collection': 'vcs_submodule',
-        'indexes': [
-            'vcs_system_id'
-        ]
-    }
+
+    meta = {"collection": "vcs_submodule", "indexes": ["vcs_system_id"]}
 
     # PK: vcs_system_id
     # Shard Key: vcs_system_id
@@ -885,7 +887,7 @@ class VCSSubmodule(Document):
     path = StringField(required=True)
 
 
-class FileAction(Document):
+class FileAction(TypedDocument):
     """
     FileAction class.
     Inherits from :class:`mongoengine.Document`
@@ -906,10 +908,10 @@ class FileAction(Document):
     """
 
     meta = {
-        'indexes': [
-            '#id',
-            'commit_id',
-            'file_id',
+        "indexes": [
+            "#id",
+            "commit_id",
+            "file_id",
         ]
     }
 
@@ -917,7 +919,7 @@ class FileAction(Document):
     # Shard Key: hashed id. Reasoning: The id is most likely the most queried part. Furthermore, a shard key consisting
     # of commit_id and file_id would be very bad.
 
-    MODES = ('A', 'M', 'D', 'C', 'T', 'R')
+    MODES = ("A", "M", "D", "C", "T", "R")
     file_id = ObjectIdField(required=True)
     commit_id = ObjectIdField(required=True)
     mode = StringField(max_length=1, required=True, choices=MODES)
@@ -933,7 +935,7 @@ class FileAction(Document):
     induces = ListField(DictField())
 
 
-class Hunk(Document):
+class Hunk(TypedDocument):
     """
     Hunk class.
     Inherits from :class:`mongoengine.Document`. See: https://en.wikipedia.org/wiki/Diff_utility#Unified_format
@@ -954,8 +956,8 @@ class Hunk(Document):
     """
 
     meta = {
-        'indexes': [
-            '#file_action_id',
+        "indexes": [
+            "#file_action_id",
         ]
     }
 
@@ -973,7 +975,7 @@ class Hunk(Document):
     uncorrected_lines_manual = DictField()
 
 
-class File(Document):
+class File(TypedDocument):
     """
     File class.
     Inherits from :class:`mongoengine.Document`.
@@ -986,9 +988,10 @@ class File(Document):
     :property path: (:class:`~mongoengine.fields.StringField`) path of the file
 
     """
+
     meta = {
-        'indexes': [
-            'vcs_system_ids',
+        "indexes": [
+            "vcs_system_ids",
         ]
     }
 
@@ -999,7 +1002,7 @@ class File(Document):
     path = StringField(max_length=300, required=True)
 
 
-class Tag(Document):
+class Tag(TypedDocument):
     """
     Tag class.
     Inherits from :class:`mongoengine.Document`.
@@ -1017,10 +1020,11 @@ class Tag(Document):
     :property date_offset: (:class:`~mongoengine.fields.IntField`)  offset for the date
 
     """
+
     meta = {
-        'indexes': [
-            'commit_id',
-            'name',
+        "indexes": [
+            "commit_id",
+            "name",
         ]
     }
 
@@ -1041,7 +1045,7 @@ class Tag(Document):
         return hash((self.commit_id, self.name))
 
 
-class Commit(Document):
+class Commit(TypedDocument):
     """
     Commit class.
 
@@ -1070,12 +1074,7 @@ class Commit(Document):
     :property szz_issue_ids: ((:class:`~mongoengine.fields.ListField` of (:class:`~mongoengine.fields.ObjectIdField`)) verified :class:`~pycoshark.mongomodels.Issue` issues linked by the SZZ algorithm
     """
 
-    meta = {
-        'indexes': [
-            'vcs_system_ids',
-            'revision_hash'
-        ]
-    }
+    meta = {"indexes": ["vcs_system_ids", "revision_hash"]}
 
     # PK: revision_hash, vcs_system_id
     # Shard Key: revision_hash, vcs_system_id
@@ -1099,7 +1098,7 @@ class Commit(Document):
     szz_issue_ids = ListField(ObjectIdField())
 
 
-class Branch(Document):
+class Branch(TypedDocument):
     """
     Branch class.
 
@@ -1115,11 +1114,7 @@ class Branch(Document):
     :property is_origin_head: (:class:`~mongoengine.fields.BooleanField`) if this branch is the default origin branch (usually master)
     """
 
-    meta = {
-        'indexes': [
-            'commit_id'
-        ]
-    }
+    meta = {"indexes": ["commit_id"]}
 
     # PK: name, vcs_system_id
     # Shard Key: name, vcs_system_id
@@ -1129,7 +1124,7 @@ class Branch(Document):
     is_origin_head = BooleanField(required=True, default=False)
 
 
-class Refactoring(Document):
+class Refactoring(TypedDocument):
     """
     Refactoring
     Inherits from :class:`mongoengine.Document`
@@ -1153,17 +1148,17 @@ class Refactoring(Document):
     hunks = ListField(DictField())
 
 
-class Identity(Document):
+class Identity(TypedDocument):
     meta = {
-        'indexes': [
-            '#id',
+        "indexes": [
+            "#id",
         ]
     }
 
     people = ListField(ObjectIdField())
 
 
-class Project(Document):
+class Project(TypedDocument):
     """
     Project class.
     Inherits from :class:`mongoengine.Document`
@@ -1174,10 +1169,9 @@ class Project(Document):
 
     :property name: (:class:`~mongoengine.fields.StringField`) name of the project
     """
+
     meta = {
-        'indexes': [
-            '#name'
-        ],
+        "indexes": ["#name"],
     }
 
     # PK: name
@@ -1185,7 +1179,7 @@ class Project(Document):
     name = StringField(max_length=200, required=True, unique=True)
 
 
-class People(Document):
+class People(TypedDocument):
     """
     People class.
     Inherits from :class:`mongoengine.Document`.
@@ -1201,7 +1195,7 @@ class People(Document):
     # PK: email, name
     # Shard Key: email, name
 
-    email = StringField(max_length=150, required=True, unique_with=['name'])
+    email = StringField(max_length=150, required=True, unique_with=["name"])
     name = StringField(max_length=150, required=True)
     username = StringField(max_length=300)
 
@@ -1209,18 +1203,26 @@ class People(Document):
         return hash(self.name + self.email)
 
 
-class Mutation(Document):
+class Mutation(TypedDocument):
     meta = {
-        'shard_key': ('location', 'm_type', 'l_num'),
+        "shard_key": ("location", "m_type", "l_num"),
     }
 
-    location = StringField(required=True, unique_with=['m_type', 'l_num'])
+    location = StringField(required=True, unique_with=["m_type", "l_num"])
     m_type = StringField(required=True)
     l_num = IntField(required=True)
     classification = StringField(null=True)
 
     def __eq__(self, other):
-        return self.m_type, self.location, self.l_num, self.classification == other.m_type, other.location, other.l_num, other.classification
+        return (
+            self.m_type,
+            self.location,
+            self.l_num,
+            self.classification == other.m_type,
+            other.location,
+            other.l_num,
+            other.classification,
+        )
 
     def __hash__(self):
         return hash((self.m_type, self.location, self.l_num, self.classification))
@@ -1233,34 +1235,34 @@ class MutationResult(EmbeddedDocument):
     result = StringField(required=True)
 
 
-class TestState(Document):
+class TestState(TypedDocument):
     """
-        TestState class.
+    TestState class.
 
-        Inherits from :class:`mongoengine.Document`.
+    Inherits from :class:`mongoengine.Document`.
 
-        Index: name, commit_id, file_id
+    Index: name, commit_id, file_id
 
-        ShardKey: shard_key name, commit_id, file_id
+    ShardKey: shard_key name, commit_id, file_id
 
-        :property name: (:class:`~mongoengine.fields.StringField`) name of the TestState, e.g. de.ugoe.cs.Class.blub
-        :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
-        :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
-        :property metrics: (:class:`~mongoengine.fields.DictField`) metrics for the test state
-        :property mutations: ((:class:`~mongoengine.fields.ListField` of Mutations) with extra information about mutations
-        """
+    :property name: (:class:`~mongoengine.fields.StringField`) name of the TestState, e.g. de.ugoe.cs.Class.blub
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs
+    :property file_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.File` id to which this state refers to
+    :property metrics: (:class:`~mongoengine.fields.DictField`) metrics for the test state
+    :property mutations: ((:class:`~mongoengine.fields.ListField` of Mutations) with extra information about mutations
+    """
 
     meta = {
-        'indexes': [
-            'commit_id',
+        "indexes": [
+            "commit_id",
         ],
-        'shard_key': ('name', 'commit_id', 'file_id'),
+        "shard_key": ("name", "commit_id", "file_id"),
     }
 
     # PK: long_name, commit_id, file_id
     # Shard Key: long_name, commit_id, file_id
 
-    name = StringField(required=True, unique_with=['commit_id', 'file_id'])
+    name = StringField(required=True, unique_with=["commit_id", "file_id"])
     file_id = ObjectIdField(required=True)
     commit_id = ObjectIdField(required=True)
     execution_time = FloatField()
@@ -1268,38 +1270,35 @@ class TestState(Document):
     mutation_res = ListField(EmbeddedDocumentField(MutationResult), default=list)
 
 
-class CommitChanges(Document):
+class CommitChanges(TypedDocument):
     """
-        CommitChanges class.
+    CommitChanges class.
 
-        Inherits from :class:`mongoengine.Document`.
+    Inherits from :class:`mongoengine.Document`.
 
-        Index: old_commit_id, new_commit_id
+    Index: old_commit_id, new_commit_id
 
-        ShardKey: id
+    ShardKey: id
 
-        :property old_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs (older in revision system)
-        :property new_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs (newer in revision system)
-        :property classification: (:class:`~mongoengine.fields.DictField`) classification for the changes
-        """
+    :property old_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs (older in revision system)
+    :property new_commit_id: (:class:`~mongoengine.fields.ObjectIdField`) :class:`~pycoshark.mongomodels.Commit` id to which this state belongs (newer in revision system)
+    :property classification: (:class:`~mongoengine.fields.DictField`) classification for the changes
+    """
 
     meta = {
-        'indexes': [
-            'old_commit_id',
-            'new_commit_id'
-        ],
-        'shard_key': ('id',),
+        "indexes": ["old_commit_id", "new_commit_id"],
+        "shard_key": ("id",),
     }
 
     # PK: old_commit_id, new_commit_id
     # Shard Key: id
 
-    old_commit_id = ObjectIdField(required=True, unique_with=['new_commit_id'])
+    old_commit_id = ObjectIdField(required=True, unique_with=["new_commit_id"])
     new_commit_id = ObjectIdField(required=True)
     classification = DictField()
 
 
-class CodeEntityState(Document):
+class CodeEntityState(TypedDocument):
     """
     CodeEntityState class.
     Inherits from :class:`mongoengine.Document`.
@@ -1324,12 +1323,13 @@ class CodeEntityState(Document):
     :property metrics: (:class:`~mongoengine.fields.DictField`) dictionary of different metrics for this code entity state
 
     """
+
     meta = {
-        'indexes': [
-            'commit_id',
-            'file_id',
+        "indexes": [
+            "commit_id",
+            "file_id",
         ],
-        'shard_key': ('s_key',)
+        "shard_key": ("s_key",),
     }
 
     # PK: long_name, commit_id, file_id
@@ -1351,22 +1351,37 @@ class CodeEntityState(Document):
     metrics = DictField()
 
     def __repr__(self):
-        return "<CodeEntityState s_key:%s long_name:%s commit_id:%s file_id:%s test_type:%s ce_parent_id:%s " \
-               "cg_ids:%s ce_type:%s imports:%s start_line:%s end_line:%s start_column:%s end_column: %s metrics: %s>" % \
-            (self.s_key, self.long_name, self.commit_id, self.file_id, self.test_type, self.ce_parent_id,
-             self.cg_ids, self.ce_type, self.imports, self.start_line, self.end_line, self.start_column,
-             self.end_column, self.metrics)
+        return (
+            "<CodeEntityState s_key:%s long_name:%s commit_id:%s file_id:%s test_type:%s ce_parent_id:%s "
+            "cg_ids:%s ce_type:%s imports:%s start_line:%s end_line:%s start_column:%s end_column: %s metrics: %s>"
+            % (
+                self.s_key,
+                self.long_name,
+                self.commit_id,
+                self.file_id,
+                self.test_type,
+                self.ce_parent_id,
+                self.cg_ids,
+                self.ce_type,
+                self.imports,
+                self.start_line,
+                self.end_line,
+                self.start_column,
+                self.end_column,
+                self.metrics,
+            )
+        )
 
     @staticmethod
     def calculate_identifier(long_name, commit_id, file_id):
         concat_string = long_name + str(commit_id) + str(file_id)
-        return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
+        return hashlib.sha1(concat_string.encode("utf-8")).hexdigest()
 
     def identifier(self):
         return self.calculate_identifier(self.long_name, self.commit_id, self.file_id)
 
 
-class CodeGroupState(Document):
+class CodeGroupState(TypedDocument):
     """
     CodeGroupState class.
     Inherits from :class:`mongoengine.Document`.
@@ -1383,12 +1398,8 @@ class CodeGroupState(Document):
     :property metrics: (:class:`~mongoengine.fields.DictField`) dictionary of different metrics for this code group state
 
     """
-    meta = {
-        'indexes': [
-            'commit_id'
-        ],
-        'shard_key': ('s_key',)
-    }
+
+    meta = {"indexes": ["commit_id"], "shard_key": ("s_key",)}
 
     s_key = StringField(required=True, unique=True)
     long_name = StringField(require=True)
@@ -1400,13 +1411,13 @@ class CodeGroupState(Document):
     @staticmethod
     def calculate_identifier(long_name, commit_id):
         concat_string = long_name + str(commit_id)
-        return hashlib.sha1(concat_string.encode('utf-8')).hexdigest()
+        return hashlib.sha1(concat_string.encode("utf-8")).hexdigest()
 
     def identifier(self):
         return self.calculate_identifier(self.long_name, self.commit_id)
 
 
-class CloneInstance(Document):
+class CloneInstance(TypedDocument):
     """
     CloneInstance class.
     Inherits from :class:`mongoengine.Document`.
@@ -1428,18 +1439,16 @@ class CloneInstance(Document):
     :property clone_class_metrics: (:class:`~mongoengine.fields.DictField`) dictionary of different metrics for the clone class
 
     """
+
     meta = {
-        'indexes': [
-            'commit_id',
-            'file_id'
-        ],
-        'shard_key': ('name', 'commit_id', 'file_id'),
+        "indexes": ["commit_id", "file_id"],
+        "shard_key": ("name", "commit_id", "file_id"),
     }
 
     # PK: name, commit_id, file_id
     # Shard Key: name, commit_id, file_id
 
-    name = StringField(required=True, unique_with=['commit_id', 'file_id'])
+    name = StringField(required=True, unique_with=["commit_id", "file_id"])
     commit_id = ObjectIdField(required=True)
     file_id = ObjectIdField(required=True)
     start_line = IntField(required=True)
@@ -1451,7 +1460,7 @@ class CloneInstance(Document):
     clone_class_metrics = DictField(required=True)
 
 
-class MynbouData(Document):
+class MynbouData(TypedDocument):
     """
     MynbouData
     Inherits from :class:`mongoengine.Document`.
@@ -1470,18 +1479,17 @@ class MynbouData(Document):
     :property last_updated: (:class:`~mongoengine.fields.DateTimeField`) time of creation of this product
 
     """
+
     meta = {
-        'indexes': [
-            'vcs_system_id'
-        ],
-        'shard_key': ('name', 'vcs_system_id'),
+        "indexes": ["vcs_system_id"],
+        "shard_key": ("name", "vcs_system_id"),
     }
 
     # PK: name, vcs_system_id, path_approach, bugfix_label, metrics_approach
     # Shard Key: name, vcs_system_id
 
     vcs_system_id = ObjectIdField(required=True)
-    name = StringField(required=True, unique_with=['vcs_system_id', 'path_approach', 'bugfix_label', 'metric_approach'])
+    name = StringField(required=True, unique_with=["vcs_system_id", "path_approach", "bugfix_label", "metric_approach"])
     path_approach = StringField(required=True)
     bugfix_label = StringField(required=True)
     metric_approach = StringField(required=True)
@@ -1489,7 +1497,7 @@ class MynbouData(Document):
     last_updated = DateTimeField(default=None)
 
 
-class StaticWarning(Document):
+class StaticWarning(TypedDocument):
     """
     StaticWarning class.
     Inherits from :class:`mongoengine.Document`.
@@ -1504,12 +1512,13 @@ class StaticWarning(Document):
     :property linter: (:class:`~mongoengine.fields.ListField`) of (:class:`~mongoengine.fields.DictField`) refers to warning from linter.
     :property metrics: (:class:`~mongoengine.fields.DictField`) dictionary of additional metrics, e.g., LLoC
     """
+
     meta = {
-        'indexes': [
-            'commit_id',
-            'file_id',
+        "indexes": [
+            "commit_id",
+            "file_id",
         ],
-        'shard_key': ('commit_id', 'file_id'),
+        "shard_key": ("commit_id", "file_id"),
     }
 
     commit_id = ObjectIdField(required=True)
