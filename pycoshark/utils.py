@@ -22,30 +22,30 @@ def is_authentication_enabled(db_user, db_password):
 
 
 def create_mongodb_uri_string(db_user, db_password, db_hostname, db_port, db_authentication_database, db_ssl_enabled):
-    uri = 'mongodb://'
+    uri = "mongodb://"
 
     if is_authentication_enabled(db_user, db_password):
-        uri = '%s%s:%s@%s:%s' % (uri, db_user, db_password, db_hostname, db_port)
+        uri = "%s%s:%s@%s:%s" % (uri, db_user, db_password, db_hostname, db_port)
     else:
-        uri = '%s%s:%s' % (uri, db_hostname, db_port)
+        uri = "%s%s:%s" % (uri, db_hostname, db_port)
 
     if (db_authentication_database is not None and db_authentication_database) or db_ssl_enabled:
-        uri = '%s/?' % uri
+        uri = "%s/?" % uri
 
         if db_authentication_database is not None and db_authentication_database:
-            uri = '%sauthSource=%s&' % (uri, db_authentication_database)
+            uri = "%sauthSource=%s&" % (uri, db_authentication_database)
 
         if db_ssl_enabled:
-            uri = '%sssl=true&ssl_cert_reqs=CERT_NONE&' % uri
+            uri = "%sssl=true&ssl_cert_reqs=CERT_NONE&" % uri
 
-        uri = uri.rstrip('&')
+        uri = uri.rstrip("&")
 
     return uri
 
 
 def reset_connection_cache():
     connection._connections = {}
-    connection._connection_settings ={}
+    connection._connection_settings = {}
     connection._dbs = {}
     for document_class in Document.__subclasses__():
         document_class._collection = None
@@ -67,23 +67,32 @@ def get_code_group_state_identifier(long_name, commit_id):
 
 def get_base_argparser(description, version):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-v', '--version', help='Shows the version', action='version', version=version)
-    parser.add_argument('-U', '--db-user', help='Database user name', default=None)
-    parser.add_argument('-P', '--db-password', help='Database user password', default=None)
-    parser.add_argument('-DB', '--db-database', help='Database name', default='smartshark')
-    parser.add_argument('-H', '--db-hostname', help='Name of the host, where the database server is running',
-                        default='localhost')
-    parser.add_argument('-p', '--db-port', help='Port, where the database server is listening', default=27017, type=int)
-    parser.add_argument('-a', '--db-authentication', help='Name of the authentication database', default=None)
-    parser.add_argument('--ssl', help='Enables SSL', default=False, action='store_true')
+    parser.add_argument("-v", "--version", help="Shows the version", action="version", version=version)
+    parser.add_argument("-U", "--db-user", help="Database user name", default=None)
+    parser.add_argument("-P", "--db-password", help="Database user password", default=None)
+    parser.add_argument("-DB", "--db-database", help="Database name", default="smartshark")
+    parser.add_argument(
+        "-H", "--db-hostname", help="Name of the host, where the database server is running", default="localhost"
+    )
+    parser.add_argument("-p", "--db-port", help="Port, where the database server is listening", default=27017, type=int)
+    parser.add_argument("-a", "--db-authentication", help="Name of the authentication database", default=None)
+    parser.add_argument("--ssl", help="Enables SSL", default=False, action="store_true")
 
     return parser
 
 
-_WONT_FIX_TYPES = {'not a bug', "won't do", "won't fix", 'duplicate', 'cannot reproduce', 'not a problem',
-                   'works for me', 'invalid'}
-_RESOLVED_TYPES = {'delivered', 'resolved', 'fixed', 'workaround', 'done', 'implemented', 'auto closed'}
-_CLOSED_STATUS = {'resolved', 'closed'}
+_WONT_FIX_TYPES = {
+    "not a bug",
+    "won't do",
+    "won't fix",
+    "duplicate",
+    "cannot reproduce",
+    "not a problem",
+    "works for me",
+    "invalid",
+}
+_RESOLVED_TYPES = {"delivered", "resolved", "fixed", "workaround", "done", "implemented", "auto closed"}
+_CLOSED_STATUS = {"resolved", "closed"}
 
 
 def jira_is_resolved_and_fixed(issue):
@@ -96,25 +105,36 @@ def jira_is_resolved_and_fixed(issue):
     # first we check if the issue itself contains information about its state
     if issue.resolution and issue.resolution.lower() in _WONT_FIX_TYPES:
         return False
-    if issue.resolution and issue.resolution.lower() in _RESOLVED_TYPES and issue.status and issue.status.lower() in _CLOSED_STATUS:
+    if (
+        issue.resolution
+        and issue.resolution.lower() in _RESOLVED_TYPES
+        and issue.status
+        and issue.status.lower() in _CLOSED_STATUS
+    ):
         return True
 
     # then we check all events related to the issue
     current_status = None
     current_resolution = None
-    for e in IssueEvent.objects(issue_id=issue.id).order_by('created_at'):
-        if e.status is not None and e.status.lower()=='status' and e.new_value is not None:
+    for e in IssueEvent.objects(issue_id=issue.id).order_by("created_at"):
+        if e.status is not None and e.status.lower() == "status" and e.new_value is not None:
             current_status = e.new_value.lower()
-        if e.status is not None and e.status.lower() == 'resolution' and e.new_value is not None:
+        if e.status is not None and e.status.lower() == "resolution" and e.new_value is not None:
             current_resolution = e.new_value.lower()
         if current_status in _CLOSED_STATUS and current_resolution in _RESOLVED_TYPES:
             return True
     return False
 
 
-TEST_FILES = re.compile(r'(^|\/)(test|tests|test_long_running|testing|legacy-tests|testdata|test-framework|derbyTesting|unitTests|java\/stubs|test-lib|src\/it|src-lib-test|src-test|tests-src|test-cactus|test-data|test-deprecated|src_unitTests|test-tools|gateway-test-release-utils|gateway-test-ldap|nifi-mock)\/', re.IGNORECASE)
-DOCUMENTATION_FILES = re.compile(r'(^|\/)(doc|docs|example|examples|sample|samples|demo|tutorial|helloworld|userguide|showcase|SafeDemo)\/', re.IGNORECASE)
-OTHER_EXCLUSIONS = re.compile(r'(^|\/)(_site|auxiliary-builds|gen-java|external|nifi-external)\/', re.IGNORECASE)
+TEST_FILES = re.compile(
+    r"(^|\/)(test|tests|test_long_running|testing|legacy-tests|testdata|test-framework|derbyTesting|unitTests|java\/stubs|test-lib|src\/it|src-lib-test|src-test|tests-src|test-cactus|test-data|test-deprecated|src_unitTests|test-tools|gateway-test-release-utils|gateway-test-ldap|nifi-mock)\/",
+    re.IGNORECASE,
+)
+DOCUMENTATION_FILES = re.compile(
+    r"(^|\/)(doc|docs|example|examples|sample|samples|demo|tutorial|helloworld|userguide|showcase|SafeDemo)\/",
+    re.IGNORECASE,
+)
+OTHER_EXCLUSIONS = re.compile(r"(^|\/)(_site|auxiliary-builds|gen-java|external|nifi-external)\/", re.IGNORECASE)
 
 
 def java_filename_filter(filename, production_only=True):
@@ -124,13 +144,14 @@ def java_filename_filter(filename, production_only=True):
     :param production_only: if True, the function excludes tests and documentation, eg. test and example folders
     :return: True if the file is java, false otherwise
     """
-    ret = filename.endswith('.java') and \
-           not filename.endswith('package-info.java')
+    ret = filename.endswith(".java") and not filename.endswith("package-info.java")
     if production_only:
-        ret = ret and \
-              not re.search(TEST_FILES, filename) and \
-              not re.search(DOCUMENTATION_FILES, filename) and \
-              not re.search(OTHER_EXCLUSIONS, filename)
+        ret = (
+            ret
+            and not re.search(TEST_FILES, filename)
+            and not re.search(DOCUMENTATION_FILES, filename)
+            and not re.search(OTHER_EXCLUSIONS, filename)
+        )
     return ret
 
 
@@ -140,11 +161,11 @@ _GIT_TAG_QUALIFIERS = r"[^a-z]((rc)|(alpha)|(beta)|(b)|(m)|(r)|(broken)|(DEV_STY
 
 
 # separators are expected to divide 2 or more numbers
-_TAG_VERSION_SEPARATORS = ['.', '_', '-']
+_TAG_VERSION_SEPARATORS = [".", "_", "-"]
 
 
 # manual corrections of known broken tags that cannot be heuristically identified
-_MANUAL_CORRECTIONS = {'COMMONS_JEXL_2_0': 'b9dc71c16461ce497e7ba4b2439983c4d756f0af'}
+_MANUAL_CORRECTIONS = {"COMMONS_JEXL_2_0": "b9dc71c16461ce497e7ba4b2439983c4d756f0af"}
 
 
 def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, date_tolerance=3, max_steps=2):
@@ -169,7 +190,7 @@ def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, 
         tag_dates = {}
         tag_commits = set()
         for tag in Tag.objects(vcs_system_id=vcs_system_id):
-            tag_commits.add(Commit.objects(id=tag.commit_id).only('committer_date').get())
+            tag_commits.add(Commit.objects(id=tag.commit_id).only("committer_date").get())
         for tag_commit in tag_commits:
             if tag_commit.committer_date in tag_dates:
                 tag_dates[tag_commit.committer_date] += 1
@@ -182,10 +203,11 @@ def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, 
         corrected_commit = None
         if correct_broken_tags:
             if tag.name in _MANUAL_CORRECTIONS:
-                corrected_commit = Commit.objects(revision_hash=_MANUAL_CORRECTIONS[tag.name]).only(
-                    'revision_hash').get()
+                corrected_commit = (
+                    Commit.objects(revision_hash=_MANUAL_CORRECTIONS[tag.name]).only("revision_hash").get()
+                )
             else:
-                tag_commit = Commit.objects(id=tag.commit_id).only('committer_date', 'parents').get()
+                tag_commit = Commit.objects(id=tag.commit_id).only("committer_date", "parents").get()
                 if tag_dates[tag_commit.committer_date] > 1:
                     tolerated_date = tag_commit.committer_date - relativedelta(minutes=date_tolerance)
                     # simple breadth first search for correct commit
@@ -195,8 +217,11 @@ def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, 
                     while corrected_commit is None and steps < max_steps:
                         if steps in parents:
                             for parent in parents[steps]:
-                                parent_commit = Commit.objects(revision_hash=parent).only('committer_date', 'parents',
-                                                                                          'revision_hash').get()
+                                parent_commit = (
+                                    Commit.objects(revision_hash=parent)
+                                    .only("committer_date", "parents", "revision_hash")
+                                    .get()
+                                )
                                 if parent_commit.committer_date < tolerated_date:
                                     corrected_commit = parent_commit
                                 else:
@@ -209,20 +234,20 @@ def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, 
                     if corrected_commit is None:
                         continue
 
-        filtered_name = re.sub(project_name.lower(), '', tag.name.lower())
+        filtered_name = re.sub(project_name.lower(), "", tag.name.lower())
 
         if re.search(_GIT_TAG_QUALIFIERS, filtered_name, re.MULTILINE | re.IGNORECASE):
             continue
 
         # we only want numbers and separators
-        version = re.sub('[a-z]', '', filtered_name)
+        version = re.sub("[a-z]", "", filtered_name)
         # the best separator is the one separating the most numbers
         best = -1
         best_sep = None
         for sep in _TAG_VERSION_SEPARATORS:
             current = 0
             for v in version.split(sep):
-                v = ''.join(c for c in v if c.isdigit())
+                v = "".join(c for c in v if c.isdigit())
                 if v.isnumeric():
                     current += 1
             if current > best:
@@ -231,7 +256,7 @@ def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, 
         version = version.split(best_sep)
         final_version = []
         for v in version:
-            v = ''.join(c for c in v if c.isdigit())
+            v = "".join(c for c in v if c.isdigit())
             if v.isnumeric():
                 final_version.append(int(v))
 
@@ -242,30 +267,30 @@ def git_tag_filter(project_name, discard_patch=False, correct_broken_tags=True, 
                 final_version.append(0)
             if len(final_version) == 2:
                 final_version.append(0)
-            commit = Commit.objects(id=tag.commit_id).only('revision_hash').get()
-            fversion = {'version': final_version, 'original': tag.name, 'revision': commit.revision_hash}
+            commit = Commit.objects(id=tag.commit_id).only("revision_hash").get()
+            fversion = {"version": final_version, "original": tag.name, "revision": commit.revision_hash}
             if corrected_commit is not None:
-                fversion['corrected_revision'] = corrected_commit.revision_hash
+                fversion["corrected_revision"] = corrected_commit.revision_hash
             initial_versions.append(fversion)
 
     # sort versions using version numbers based on the SemVer scheme
-    sorted_versions = sorted(initial_versions, key=lambda x: (x['version'][0], x['version'][1], x['version'][2]))
+    sorted_versions = sorted(initial_versions, key=lambda x: (x["version"][0], x["version"][1], x["version"][2]))
 
     # finally make sorted versions unique and discard patch releases
     ret = []
     for version in sorted_versions:
         # we discard patch releases
         if discard_patch:
-            if len(version['version']) > 2:
-                del version['version'][2:]
+            if len(version["version"]) > 2:
+                del version["version"][2:]
         # we discard duplicates; the sorting ensures that we only keep the oldest release in case we ignore patches
-        if version['version'] not in [v2['version'] for v2 in ret]:
+        if version["version"] not in [v2["version"] for v2 in ret]:
             ret.append(version)
 
     return ret
 
 
-def get_affected_versions(issue, project_name='', jira_key=''):
+def get_affected_versions(issue, project_name="", jira_key=""):
     """
     Determines a list of the affected versions as a list of SemVer versions. Only considers releases.
     :param issue: issue for which the affected versions are determined
@@ -277,15 +302,15 @@ def get_affected_versions(issue, project_name='', jira_key=''):
     if issue.affects_versions:
         for av in issue.affects_versions:
             av = av.lower()
-            if av.startswith('v'):
+            if av.startswith("v"):
                 av = av[1:]
-            av = av.replace(project_name,'')
-            av = av.replace(jira_key, '')
-            av = av.replace('.x', '')
-            av = av.replace('release', '')
+            av = av.replace(project_name, "")
+            av = av.replace(jira_key, "")
+            av = av.replace(".x", "")
+            av = av.replace("release", "")
             av = av.strip()
-            if all(v.isnumeric() for v in av.split('.')):
-                versions.append(av.split('.'))
+            if all(v.isnumeric() for v in av.split(".")):
+                versions.append(av.split("."))
     return versions
 
 
@@ -296,14 +321,14 @@ def get_commit_graph(vcs_system_id, silent=True):
     """
     g = nx.DiGraph()
     # first we add all nodes to the graph
-    for c in Commit.objects(vcs_system_id=vcs_system_id).only('id', 'revision_hash').timeout(False):
+    for c in Commit.objects(vcs_system_id=vcs_system_id).only("id", "revision_hash").timeout(False):
         g.add_node(c.revision_hash)
 
     # after that we draw all edges
-    for c in Commit.objects(vcs_system_id=vcs_system_id).only('id', 'parents', 'revision_hash').timeout(False):
+    for c in Commit.objects(vcs_system_id=vcs_system_id).only("id", "parents", "revision_hash").timeout(False):
         for p in c.parents:
             try:
-                p1 = Commit.objects(vcs_system_id=vcs_system_id,revision_hash=p).only('id', 'revision_hash').get()
+                p1 = Commit.objects(vcs_system_id=vcs_system_id, revision_hash=p).only("id", "revision_hash").get()
                 g.add_edge(p1.revision_hash, c.revision_hash)
             except Commit.DoesNotExist:
                 if not silent:
@@ -323,8 +348,8 @@ def heuristic_renames(vcs_system_id, revision_hash):
     the old name and the second element is the new name. The added files are a list.
     """
     renames = {}
-    commit = Commit.objects(vcs_system_id=vcs_system_id, revision_hash=revision_hash).only('id').get()
-    for fa in FileAction.objects(commit_id=commit.id, mode='R'):
+    commit = Commit.objects(vcs_system_id=vcs_system_id, revision_hash=revision_hash).only("id").get()
+    for fa in FileAction.objects(commit_id=commit.id, mode="R"):
         new_file = File.objects.get(id=fa.file_id)
         old_file = File.objects.get(id=fa.old_file_id)
 
@@ -342,7 +367,7 @@ def heuristic_renames(vcs_system_id, revision_hash):
             continue
 
         # multiple files, find the best matching
-        min_dist = float('inf')
+        min_dist = float("inf")
         probable_file = None
         for new_file in new_files:
             d = levenshtein(old_file, new_file)
@@ -359,22 +384,24 @@ def heuristic_renames(vcs_system_id, revision_hash):
 
 
 def copy_projects(
-        *, projects,
-        collections=None,
-        source_dbname='smartshark',
-        source_user=None,
-        source_password=None,
-        source_hostname='localhost',
-        source_port=27017,
-        source_authentication_db=None,
-        source_ssl=False,
-        target_dbname='smartshark_backup',
-        target_user=None,
-        target_password=None,
-        target_hostname='localhost',
-        target_port=27017,
-        target_authentication_db=None,
-        target_ssl=False):
+    *,
+    projects,
+    collections=None,
+    source_dbname="smartshark",
+    source_user=None,
+    source_password=None,
+    source_hostname="localhost",
+    source_port=27017,
+    source_authentication_db=None,
+    source_ssl=False,
+    target_dbname="smartshark_backup",
+    target_user=None,
+    target_password=None,
+    target_hostname="localhost",
+    target_port=27017,
+    target_authentication_db=None,
+    target_ssl=False,
+):
     """
     Copy data for a list of projects between databases. Also allows the specification of a list of collections that
     should be copied. All other collections are ignored. The personal data from the people and identities collections
@@ -399,38 +426,62 @@ def copy_projects(
     :param target_ssl: whether SSL is used for the connection to the target database. Default: None
     """
 
-    project_ref_collections = ['vcs_system', 'issue_system', 'mailing_list', 'pull_request_system']
-    vcs_ref_collections = ['branch', 'tag', 'file', 'commit', 'travis_build']
-    commit_ref_collections = ['clone_instance', 'code_entity_state', 'code_group_state',
-                              'commit_changes', 'file_action', 'refactoring']
-    file_action_ref_collections = ['hunk']
-    its_ref_collections = ['issue']
-    issue_ref_collections = ['issue_comment', 'event']
-    ml_ref_collections = ['message']
-    travis_ref_collections = ['travis_job']
-    prsystem_ref_collections = ['pull_request']
-    pr_ref_collections = ['pull_request_comment', 'pull_request_commit', 'pull_request_event', 'pull_request_file',
-                          'pull_request_file', 'pull_request_review']
-    prreview_ref_collections = ['pull_request_review_comment']
-    special_case_collections = ['project', 'repository_data']
+    project_ref_collections = ["vcs_system", "issue_system", "mailing_list", "pull_request_system"]
+    vcs_ref_collections = ["branch", "tag", "file", "commit", "travis_build"]
+    commit_ref_collections = [
+        "clone_instance",
+        "code_entity_state",
+        "code_group_state",
+        "commit_changes",
+        "file_action",
+        "refactoring",
+    ]
+    file_action_ref_collections = ["hunk"]
+    its_ref_collections = ["issue"]
+    issue_ref_collections = ["issue_comment", "event"]
+    ml_ref_collections = ["message"]
+    travis_ref_collections = ["travis_job"]
+    prsystem_ref_collections = ["pull_request"]
+    pr_ref_collections = [
+        "pull_request_comment",
+        "pull_request_commit",
+        "pull_request_event",
+        "pull_request_file",
+        "pull_request_file",
+        "pull_request_review",
+    ]
+    prreview_ref_collections = ["pull_request_review_comment"]
+    special_case_collections = ["project", "repository_data"]
 
     if collections is None:
-        collections = set().union(project_ref_collections, vcs_ref_collections, commit_ref_collections,
-                                  file_action_ref_collections, its_ref_collections, issue_ref_collections,
-                                  ml_ref_collections, travis_ref_collections, special_case_collections,
-                                  prsystem_ref_collections, pr_ref_collections, prreview_ref_collections)
+        collections = set().union(
+            project_ref_collections,
+            vcs_ref_collections,
+            commit_ref_collections,
+            file_action_ref_collections,
+            its_ref_collections,
+            issue_ref_collections,
+            ml_ref_collections,
+            travis_ref_collections,
+            special_case_collections,
+            prsystem_ref_collections,
+            pr_ref_collections,
+            prreview_ref_collections,
+        )
 
     print("connecting to source database")
-    source_uri = create_mongodb_uri_string(source_user, source_password, source_hostname, source_port,
-                                           source_authentication_db, source_ssl)
+    source_uri = create_mongodb_uri_string(
+        source_user, source_password, source_hostname, source_port, source_authentication_db, source_ssl
+    )
     print(source_uri)
     client_source = MongoClient(source_uri)
     source_db = client_source[source_dbname]
     print("found the following collections in source db: %s" % source_db.list_collection_names())
 
     print("connecting to target database")
-    target_uri = create_mongodb_uri_string(target_user, target_password, target_hostname, target_port,
-                                           target_authentication_db, target_ssl)
+    target_uri = create_mongodb_uri_string(
+        target_user, target_password, target_hostname, target_port, target_authentication_db, target_ssl
+    )
 
     client_target = MongoClient(target_uri)
     target_db = client_target[target_dbname]
@@ -439,82 +490,115 @@ def copy_projects(
     print("creating collections with index in target database if they do not exist yet")
     for collection in collections:
         for name, index_info in source_db[collection].index_information().items():
-            keys = index_info['key']
-            del (index_info['ns'])
-            del (index_info['v'])
-            del (index_info['key'])
+            keys = index_info["key"]
+            del index_info["ns"]
+            del index_info["v"]
+            del index_info["key"]
             target_db[collection].create_index(keys, name=name, **index_info)
 
     for project_name in projects:
-        print('starting for project %s' % project_name)
-        if 'project' in collections:
-            _copy_data(collection='project', condition={'name': project_name}, source_db=source_db, target_db=target_db)
+        print("starting for project %s" % project_name)
+        if "project" in collections:
+            _copy_data(collection="project", condition={"name": project_name}, source_db=source_db, target_db=target_db)
 
-        project = source_db.project.find_one({'name': project_name})
+        project = source_db.project.find_one({"name": project_name})
         for cur_col in project_ref_collections:
             if cur_col in collections:
-                _copy_data(collection=cur_col, condition={'project_id': project['_id']},
-                           source_db=source_db, target_db=target_db)
+                _copy_data(
+                    collection=cur_col,
+                    condition={"project_id": project["_id"]},
+                    source_db=source_db,
+                    target_db=target_db,
+                )
 
         if not collections.isdisjoint(
-                (set().union(vcs_ref_collections,
-                             commit_ref_collections,
-                             travis_ref_collections,
-                             file_action_ref_collections,
-                             ['repository_file']))):
-            print('copying data that references vcs_system...')
-            for vcs_system in source_db.vcs_system.find({'project_id': project['_id']}):
+            (
+                set().union(
+                    vcs_ref_collections,
+                    commit_ref_collections,
+                    travis_ref_collections,
+                    file_action_ref_collections,
+                    ["repository_file"],
+                )
+            )
+        ):
+            print("copying data that references vcs_system...")
+            for vcs_system in source_db.vcs_system.find({"project_id": project["_id"]}):
 
                 # first treat the special case repository data
-                if 'repository_data' in collections:
+                if "repository_data" in collections:
                     print("copying data for collection repository_data")
-                    file_id = vcs_system['repository_file']
-                    source_fs = gridfs.GridFS(source_db, collection='repository_data')
-                    target_fs = gridfs.GridFS(target_db, collection='repository_data')
-                    for grid_out in source_fs.find({'_id': file_id}):
+                    file_id = vcs_system["repository_file"]
+                    source_fs = gridfs.GridFS(source_db, collection="repository_data")
+                    target_fs = gridfs.GridFS(target_db, collection="repository_data")
+                    for grid_out in source_fs.find({"_id": file_id}):
                         if target_fs.exists(file_id):
                             continue
-                        with target_fs.new_file(_id=file_id, filename=grid_out.filename,
-                                                content_type=grid_out.content_type) as grid_in:
+                        with target_fs.new_file(
+                            _id=file_id, filename=grid_out.filename, content_type=grid_out.content_type
+                        ) as grid_in:
                             grid_in.write(grid_out.read())
 
                 # then copy all others
                 for cur_col in vcs_ref_collections:
                     if cur_col in collections:
-                        if cur_col != 'commit':
-                            _copy_data(collection=cur_col, condition={'vcs_system_id': vcs_system['_id']},
-                                       source_db=source_db, target_db=target_db)
+                        if cur_col != "commit":
+                            _copy_data(
+                                collection=cur_col,
+                                condition={"vcs_system_id": vcs_system["_id"]},
+                                source_db=source_db,
+                                target_db=target_db,
+                            )
                         else:  # special case handling for commits due to the size
-                            commits = [commit['_id'] for commit in
-                                       source_db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1},
-                                                             no_cursor_timeout=True)]
+                            commits = [
+                                commit["_id"]
+                                for commit in source_db.commit.find(
+                                    {"vcs_system_id": vcs_system["_id"]}, {"_id": 1}, no_cursor_timeout=True
+                                )
+                            ]
                             print("copying data for collection commit")
 
                             for i in range(0, math.ceil(len(commits) / 100)):
                                 slice_start = i * 100
                                 slice_end = min((i + 1) * 100, len(commits))
                                 cur_commit_slice = commits[slice_start:slice_end]
-                                _copy_data(collection=cur_col,
-                                           condition={'_id': {'$in': cur_commit_slice}},
-                                           source_db=source_db, target_db=target_db, verbose=False)
+                                _copy_data(
+                                    collection=cur_col,
+                                    condition={"_id": {"$in": cur_commit_slice}},
+                                    source_db=source_db,
+                                    target_db=target_db,
+                                    verbose=False,
+                                )
 
                 if not collections.isdisjoint(set(travis_ref_collections)):
                     print("copying data that references travis_build")
-                    travis_builds = [travis_build['_id'] for travis_build in
-                                     source_db.travis_build.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1})]
-                    for i in range(0, math.ceil(len(travis_builds)/50)):
+                    travis_builds = [
+                        travis_build["_id"]
+                        for travis_build in source_db.travis_build.find(
+                            {"vcs_system_id": vcs_system["_id"]}, {"_id": 1}
+                        )
+                    ]
+                    for i in range(0, math.ceil(len(travis_builds) / 50)):
                         slice_start = i * 100
-                        slice_end = min((i+1) * 100, len(travis_builds))
+                        slice_end = min((i + 1) * 100, len(travis_builds))
                         cur_build_slice = travis_builds[slice_start:slice_end]
                         for cur_col in travis_ref_collections:
                             if cur_col in collections:
-                                _copy_data(collection=cur_col, condition={'build_id': {'$in': cur_build_slice}},
-                                           source_db=source_db, target_db=target_db, verbose=False)
+                                _copy_data(
+                                    collection=cur_col,
+                                    condition={"build_id": {"$in": cur_build_slice}},
+                                    source_db=source_db,
+                                    target_db=target_db,
+                                    verbose=False,
+                                )
 
                 if not collections.isdisjoint(set().union(commit_ref_collections, file_action_ref_collections)):
-                    commits = [commit['_id'] for commit in
-                               source_db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1},
-                                                     no_cursor_timeout=True)]
+                    commits = [
+                        commit["_id"]
+                        for commit in source_db.commit.find(
+                            {"vcs_system_id": vcs_system["_id"]}, {"_id": 1}, no_cursor_timeout=True
+                        )
+                    ]
                     print("start copying data that references commit (%i commits total)" % len(commits))
 
                     for i in range(0, math.ceil(len(commits) / 100)):
@@ -524,80 +608,129 @@ def copy_projects(
 
                         for cur_col in commit_ref_collections:
                             if cur_col in collections:
-                                if cur_col == 'commit_changes':  # special case because no field commit_id
-                                    condition = {'old_commit_id': {'$in': cur_commit_slice}}
+                                if cur_col == "commit_changes":  # special case because no field commit_id
+                                    condition = {"old_commit_id": {"$in": cur_commit_slice}}
                                 else:
-                                    condition = {'commit_id': {'$in': cur_commit_slice}}
+                                    condition = {"commit_id": {"$in": cur_commit_slice}}
                                 if cur_col in collections:
-                                    _copy_data(collection=cur_col, condition=condition, source_db=source_db,
-                                               target_db=target_db, verbose=False)
+                                    _copy_data(
+                                        collection=cur_col,
+                                        condition=condition,
+                                        source_db=source_db,
+                                        target_db=target_db,
+                                        verbose=False,
+                                    )
 
                             # check if file action references must be copied
-                            if cur_col == 'file_action' and \
-                                    not collections.isdisjoint(set(file_action_ref_collections)):
-                                file_actions = [file_action['_id'] for file_action in
-                                                source_db.file_action.find({'commit_id': {'$in': cur_commit_slice}})]
+                            if cur_col == "file_action" and not collections.isdisjoint(
+                                set(file_action_ref_collections)
+                            ):
+                                file_actions = [
+                                    file_action["_id"]
+                                    for file_action in source_db.file_action.find(
+                                        {"commit_id": {"$in": cur_commit_slice}}
+                                    )
+                                ]
                                 if True:
                                     for cur_faref_col in file_action_ref_collections:
                                         if cur_faref_col in collections:
-                                            _copy_data(collection=cur_faref_col,
-                                                       condition={'file_action_id': {'$in': file_actions}},
-                                                       source_db=source_db, target_db=target_db, verbose=False)
-                        print((i + 1) * 100, 'commits done')
+                                            _copy_data(
+                                                collection=cur_faref_col,
+                                                condition={"file_action_id": {"$in": file_actions}},
+                                                source_db=source_db,
+                                                target_db=target_db,
+                                                verbose=False,
+                                            )
+                        print((i + 1) * 100, "commits done")
 
-        if not collections.isdisjoint(
-                (set().union(its_ref_collections, issue_ref_collections))):
-            print('copying data that references issue_system')
-            for issue_system in source_db.issue_system.find({'project_id': project['_id']}, no_cursor_timeout=True):
+        if not collections.isdisjoint((set().union(its_ref_collections, issue_ref_collections))):
+            print("copying data that references issue_system")
+            for issue_system in source_db.issue_system.find({"project_id": project["_id"]}, no_cursor_timeout=True):
                 for cur_col in its_ref_collections:
                     if cur_col in collections:
-                        _copy_data(collection=cur_col, condition={'issue_system_id': issue_system['_id']},
-                                   source_db=source_db, target_db=target_db)
+                        _copy_data(
+                            collection=cur_col,
+                            condition={"issue_system_id": issue_system["_id"]},
+                            source_db=source_db,
+                            target_db=target_db,
+                        )
 
                 if not collections.isdisjoint(set(issue_ref_collections)):
-                    issues = [issue['_id'] for issue in
-                              source_db.issue.find({'issue_system_id': issue_system['_id']}, {'_id': 1})]
+                    issues = [
+                        issue["_id"]
+                        for issue in source_db.issue.find({"issue_system_id": issue_system["_id"]}, {"_id": 1})
+                    ]
                     for cur_col in issue_ref_collections:
                         if cur_col in collections:
-                            _copy_data(collection=cur_col, condition={'issue_id': {'$in': issues}},
-                                       source_db=source_db, target_db=target_db, verbose=False)
+                            _copy_data(
+                                collection=cur_col,
+                                condition={"issue_id": {"$in": issues}},
+                                source_db=source_db,
+                                target_db=target_db,
+                                verbose=False,
+                            )
 
         if not collections.isdisjoint(set(ml_ref_collections)):
             print("copying data that references mailing_list")
-            for mailing_list in source_db.mailing_list.find({'project_id': project['_id']}):
+            for mailing_list in source_db.mailing_list.find({"project_id": project["_id"]}):
                 for cur_col in ml_ref_collections:
                     if cur_col in collections:
-                        _copy_data(collection=cur_col, condition={'mailing_list_id': mailing_list['_id']},
-                                   source_db=source_db, target_db=target_db)
+                        _copy_data(
+                            collection=cur_col,
+                            condition={"mailing_list_id": mailing_list["_id"]},
+                            source_db=source_db,
+                            target_db=target_db,
+                        )
 
         if not collections.isdisjoint(
-                (set().union(pr_ref_collections, prsystem_ref_collections, prreview_ref_collections))):
-            print('copying data that references pull_request_system')
-            for pull_request_system in source_db.pull_request_system.find({'project_id': project['_id']},
-                                                                          no_cursor_timeout=True):
+            (set().union(pr_ref_collections, prsystem_ref_collections, prreview_ref_collections))
+        ):
+            print("copying data that references pull_request_system")
+            for pull_request_system in source_db.pull_request_system.find(
+                {"project_id": project["_id"]}, no_cursor_timeout=True
+            ):
                 for cur_col in prsystem_ref_collections:
                     if cur_col in collections:
-                        _copy_data(collection=cur_col, condition={'pull_request_system_id': pull_request_system['_id']},
-                                   source_db=source_db, target_db=target_db)
+                        _copy_data(
+                            collection=cur_col,
+                            condition={"pull_request_system_id": pull_request_system["_id"]},
+                            source_db=source_db,
+                            target_db=target_db,
+                        )
 
                 if not collections.isdisjoint(set().union(pr_ref_collections, prreview_ref_collections)):
-                    pull_requests = [pull_request['_id'] for pull_request in
-                                     source_db.pull_request.find({'pull_request_system_id': pull_request_system['_id']},
-                                                                 {'_id': 1})]
+                    pull_requests = [
+                        pull_request["_id"]
+                        for pull_request in source_db.pull_request.find(
+                            {"pull_request_system_id": pull_request_system["_id"]}, {"_id": 1}
+                        )
+                    ]
                     for cur_col in pr_ref_collections:
                         if cur_col in collections:
-                            _copy_data(collection=cur_col, condition={'pull_request_id': {'$in': pull_requests}},
-                                       source_db=source_db, target_db=target_db, verbose=False)
+                            _copy_data(
+                                collection=cur_col,
+                                condition={"pull_request_id": {"$in": pull_requests}},
+                                source_db=source_db,
+                                target_db=target_db,
+                                verbose=False,
+                            )
 
                     if not collections.isdisjoint(set(prreview_ref_collections)):
-                        pull_request_reviews = [pull_request_review['_id'] for pull_request_review in
-                                                source_db.pull_request_review.find(
-                                                    {'pull_request_id': {'$in': pull_requests}}, {'_id': 1})]
+                        pull_request_reviews = [
+                            pull_request_review["_id"]
+                            for pull_request_review in source_db.pull_request_review.find(
+                                {"pull_request_id": {"$in": pull_requests}}, {"_id": 1}
+                            )
+                        ]
                         for cur_col in prreview_ref_collections:
                             if cur_col in collections:
-                                _copy_data(collection=cur_col,
-                                           condition={'pull_request_review_id': {'$in': pull_request_reviews}},
-                                           source_db=source_db, target_db=target_db, verbose=False)
+                                _copy_data(
+                                    collection=cur_col,
+                                    condition={"pull_request_review_id": {"$in": pull_request_reviews}},
+                                    source_db=source_db,
+                                    target_db=target_db,
+                                    verbose=False,
+                                )
 
 
 def _copy_data(collection, condition, source_db, target_db, verbose=True):
@@ -616,15 +749,16 @@ def _copy_data(collection, condition, source_db, target_db, verbose=True):
 
 
 def delete_projects(
-        *, projects,
-        db_name='smartshark',
-        db_user=None,
-        db_password=None,
-        db_hostname='localhost',
-        db_port=27017,
-        db_authentication_db=None,
-        db_ssl=False,
-        ):
+    *,
+    projects,
+    db_name="smartshark",
+    db_user=None,
+    db_password=None,
+    db_hostname="localhost",
+    db_port=27017,
+    db_authentication_db=None,
+    db_ssl=False,
+):
     """
     Delete a list of project from a database.
 
@@ -638,19 +772,31 @@ def delete_projects(
     :param db_ssl:  whether SSL is used for the connection to the source database. Default: None
     """
 
-    project_ref_collections = ['vcs_system', 'issue_system', 'mailing_list', 'pull_request_system']
-    vcs_ref_collections = ['branch', 'tag', 'file', 'commit', 'travis_build']
-    commit_ref_collections = ['clone_instance', 'code_entity_state', 'code_group_state',
-                              'commit_changes', 'file_action', 'refactoring']
-    file_action_ref_collections = ['hunk']
-    its_ref_collections = ['issue']
-    issue_ref_collections = ['issue_comment', 'event']
-    ml_ref_collections = ['message']
-    travis_ref_collections = ['travis_job']
-    prsystem_ref_collections = ['pull_request']
-    pr_ref_collections = ['pull_request_comment', 'pull_request_commit', 'pull_request_event', 'pull_request_file',
-                          'pull_request_file', 'pull_request_review']
-    prreview_ref_collections = ['pull_request_review_comment']
+    project_ref_collections = ["vcs_system", "issue_system", "mailing_list", "pull_request_system"]
+    vcs_ref_collections = ["branch", "tag", "file", "commit", "travis_build"]
+    commit_ref_collections = [
+        "clone_instance",
+        "code_entity_state",
+        "code_group_state",
+        "commit_changes",
+        "file_action",
+        "refactoring",
+    ]
+    file_action_ref_collections = ["hunk"]
+    its_ref_collections = ["issue"]
+    issue_ref_collections = ["issue_comment", "event"]
+    ml_ref_collections = ["message"]
+    travis_ref_collections = ["travis_job"]
+    prsystem_ref_collections = ["pull_request"]
+    pr_ref_collections = [
+        "pull_request_comment",
+        "pull_request_commit",
+        "pull_request_event",
+        "pull_request_file",
+        "pull_request_file",
+        "pull_request_review",
+    ]
+    prreview_ref_collections = ["pull_request_review_comment"]
 
     print("connecting to database")
     db_uri = create_mongodb_uri_string(db_user, db_password, db_hostname, db_port, db_authentication_db, db_ssl)
@@ -659,19 +805,21 @@ def delete_projects(
     db = db_client[db_name]
 
     for project_name in projects:
-        print('starting for project %s' % project_name)
-        project = db['project'].find_one({'name': project_name})
+        print("starting for project %s" % project_name)
+        project = db["project"].find_one({"name": project_name})
         for cur_proref_col in project_ref_collections:
-            if cur_proref_col == 'vcs_system':
-                for vcs_system in db.vcs_system.find({'project_id': project['_id']}):
-                    file_id = vcs_system['repository_file']
-                    fs = gridfs.GridFS(db, collection='repository_data')
+            if cur_proref_col == "vcs_system":
+                for vcs_system in db.vcs_system.find({"project_id": project["_id"]}):
+                    file_id = vcs_system["repository_file"]
+                    fs = gridfs.GridFS(db, collection="repository_data")
                     fs.delete(file_id)
 
                     for cur_vcsref_col in vcs_ref_collections:
-                        if cur_vcsref_col == 'commit':
-                            commits = [commit['_id'] for commit in
-                                       db.commit.find({'vcs_system_id': vcs_system['_id']}, {'_id': 1})]
+                        if cur_vcsref_col == "commit":
+                            commits = [
+                                commit["_id"]
+                                for commit in db.commit.find({"vcs_system_id": vcs_system["_id"]}, {"_id": 1})
+                            ]
                             print("start copying data that references commit (%i commits total)" % len(commits))
 
                             for i in range(0, math.ceil(len(commits) / 100)):
@@ -679,96 +827,110 @@ def delete_projects(
                                 slice_end = min((i + 1) * 100, len(commits))
                                 cur_commit_slice = commits[slice_start:slice_end]
                                 for cur_commitref_col in commit_ref_collections:
-                                    if cur_commitref_col == 'commit_changes':  # special case because no field commit_id
-                                        print('deleting %s' % cur_commitref_col)
-                                        db[cur_commitref_col].delete_many({'old_commit_id': {'$in': cur_commit_slice}})
-                                    if cur_commitref_col == 'file_action':
-                                        file_actions = [file_action['_id'] for file_action in
-                                                        db.file_action.find({'commit_id': {'$in': cur_commit_slice}})]
+                                    if cur_commitref_col == "commit_changes":  # special case because no field commit_id
+                                        print("deleting %s" % cur_commitref_col)
+                                        db[cur_commitref_col].delete_many({"old_commit_id": {"$in": cur_commit_slice}})
+                                    if cur_commitref_col == "file_action":
+                                        file_actions = [
+                                            file_action["_id"]
+                                            for file_action in db.file_action.find(
+                                                {"commit_id": {"$in": cur_commit_slice}}
+                                            )
+                                        ]
                                         for cur_faref_col in file_action_ref_collections:
-                                            print('deleting %s' % cur_faref_col)
-                                            db[cur_faref_col].delete_many({'file_action_id': {'$in': file_actions}})
-                                    print('deleting %s' % cur_commitref_col)
-                                    db[cur_commitref_col].delete_many({'commit_id': {'$in': cur_commit_slice}})
-                                print((i + 1) * 100, 'commits done')
-                        if cur_vcsref_col == 'travis_build':
+                                            print("deleting %s" % cur_faref_col)
+                                            db[cur_faref_col].delete_many({"file_action_id": {"$in": file_actions}})
+                                    print("deleting %s" % cur_commitref_col)
+                                    db[cur_commitref_col].delete_many({"commit_id": {"$in": cur_commit_slice}})
+                                print((i + 1) * 100, "commits done")
+                        if cur_vcsref_col == "travis_build":
                             for cur_travisref_col in travis_ref_collections:
-                                print('deleting %s' % cur_travisref_col)
-                                db[cur_travisref_col].delete_many({'vcs_system_id': vcs_system['_id']})
+                                print("deleting %s" % cur_travisref_col)
+                                db[cur_travisref_col].delete_many({"vcs_system_id": vcs_system["_id"]})
 
-                        print('deleting %s' % cur_vcsref_col)
-                        db[cur_vcsref_col].delete_many({'vcs_system_id': vcs_system['_id']})
+                        print("deleting %s" % cur_vcsref_col)
+                        db[cur_vcsref_col].delete_many({"vcs_system_id": vcs_system["_id"]})
 
-            if cur_proref_col == 'issue_system':
-                for issue_system in db.issue_system.find({'project_id': project['_id']}):
+            if cur_proref_col == "issue_system":
+                for issue_system in db.issue_system.find({"project_id": project["_id"]}):
                     for cur_itsref_col in its_ref_collections:
-                        if cur_itsref_col == 'issue':
-                            issues = [issue['_id'] for issue in
-                                      db.issue.find({'issue_system_id': issue_system['_id']}, {'_id': 1})]
+                        if cur_itsref_col == "issue":
+                            issues = [
+                                issue["_id"]
+                                for issue in db.issue.find({"issue_system_id": issue_system["_id"]}, {"_id": 1})
+                            ]
                             for cur_issueref_col in issue_ref_collections:
-                                print('deleting %s' % cur_issueref_col)
-                                db[cur_issueref_col].delete_many({'issue_id': {'$in': issues}})
-                        print('deleting %s' % cur_itsref_col)
-                        db[cur_itsref_col].delete_many({'issue_system_id': issue_system['_id']})
+                                print("deleting %s" % cur_issueref_col)
+                                db[cur_issueref_col].delete_many({"issue_id": {"$in": issues}})
+                        print("deleting %s" % cur_itsref_col)
+                        db[cur_itsref_col].delete_many({"issue_system_id": issue_system["_id"]})
 
-            if cur_proref_col == 'mailing_list':
-                for mailing_list in db.mailing_list.find({'project_id': project['_id']}):
+            if cur_proref_col == "mailing_list":
+                for mailing_list in db.mailing_list.find({"project_id": project["_id"]}):
                     for cur_mlref_col in ml_ref_collections:
-                        print('deleting %s' % cur_mlref_col)
-                        db[cur_mlref_col].delete_many({'mailing_list_id': mailing_list['_id']})
+                        print("deleting %s" % cur_mlref_col)
+                        db[cur_mlref_col].delete_many({"mailing_list_id": mailing_list["_id"]})
 
-            if cur_proref_col == 'pull_request_system':
-                for pull_request_system in db.pull_request_system.find({'project_id': project['_id']},
-                                                                       no_cursor_timeout=True):
+            if cur_proref_col == "pull_request_system":
+                for pull_request_system in db.pull_request_system.find(
+                    {"project_id": project["_id"]}, no_cursor_timeout=True
+                ):
 
                     for cur_prsysref_col in prsystem_ref_collections:
-                        if cur_prsysref_col == 'pull_request':
-                            pull_requests = [pull_request['_id'] for pull_request in
-                                             db.pull_request.find({'pull_request_system_id':
-                                                                       pull_request_system['_id']}, {'_id': 1})]
+                        if cur_prsysref_col == "pull_request":
+                            pull_requests = [
+                                pull_request["_id"]
+                                for pull_request in db.pull_request.find(
+                                    {"pull_request_system_id": pull_request_system["_id"]}, {"_id": 1}
+                                )
+                            ]
                             for cur_prref_col in pr_ref_collections:
-                                if cur_prref_col == 'pull_request_review':
-                                    pull_request_reviews = [pull_request_review['_id'] for pull_request_review in
-                                                            db.pull_request_review.find({'pull_request_id':
-                                                                                             {'$in': pull_requests}},
-                                                                                        {'_id': 1})]
+                                if cur_prref_col == "pull_request_review":
+                                    pull_request_reviews = [
+                                        pull_request_review["_id"]
+                                        for pull_request_review in db.pull_request_review.find(
+                                            {"pull_request_id": {"$in": pull_requests}}, {"_id": 1}
+                                        )
+                                    ]
                                     for cur_prreviewref_col in prreview_ref_collections:
-                                        print('deleting %s' % cur_prreviewref_col)
-                                        db[cur_prreviewref_col].delete_many({'pull_request_review_id':
-                                                                                 {'$in': pull_request_reviews}})
-                                print('deleting %s' % cur_prref_col)
-                                db[cur_prref_col].delete_many({'pull_request_id': {'$in': pull_requests}})
-                        print('deleting %s' % cur_prsysref_col)
-                        db[cur_prsysref_col].delete_many({'pull_request_system_id': pull_request_system['_id']})
+                                        print("deleting %s" % cur_prreviewref_col)
+                                        db[cur_prreviewref_col].delete_many(
+                                            {"pull_request_review_id": {"$in": pull_request_reviews}}
+                                        )
+                                print("deleting %s" % cur_prref_col)
+                                db[cur_prref_col].delete_many({"pull_request_id": {"$in": pull_requests}})
+                        print("deleting %s" % cur_prsysref_col)
+                        db[cur_prsysref_col].delete_many({"pull_request_system_id": pull_request_system["_id"]})
 
-            print('deleting %s' % cur_proref_col)
-            db[cur_proref_col].delete_many({'project_id': project['_id']})
-        db['project'].delete_one({'name': project_name})
+            print("deleting %s" % cur_proref_col)
+            db[cur_proref_col].delete_many({"project_id": project["_id"]})
+        db["project"].delete_one({"name": project_name})
 
 
 def delete_last_system_data_on_failure(
-        system,
-        url,
-        db_name='smartshark',
-        db_user=None,
-        db_password=None,
-        db_hostname='localhost',
-        db_port=27017,
-        db_authentication_db=None,
-        db_ssl=False, ):
+    system,
+    url,
+    db_name="smartshark",
+    db_user=None,
+    db_password=None,
+    db_hostname="localhost",
+    db_port=27017,
+    db_authentication_db=None,
+    db_ssl=False,
+):
     """
-       Delete the last system data on failure.
+    Delete the last system data on failure.
 
-       :param system: The system name.
-       :param url: The URL associated with the system.
-       :param db_name: The name of the MongoDB database (default is 'smartshark').
-       :param db_user: The username for database authentication.
-       :param db_password: The password for database authentication.
-       :param db_hostname: The hostname of the MongoDB server (default is 'localhost').
-       :param db_port: The port number of the MongoDB server (default is 27017).
-       :param db_authentication_db: The authentication database name.
-       :param db_ssl: Enable SSL connection to the database (default is False).
-       """
+    :param system: The system name.
+    :param url: The URL associated with the system.
+    :param db_name: The name of the MongoDB database (default is 'smartshark').
+    :param db_user: The username for database authentication.
+    :param db_password: The password for database authentication.
+    :param db_hostname: The hostname of the MongoDB server (default is 'localhost').
+    :param db_port: The port number of the MongoDB server (default is 27017).
+    :param db_authentication_db: The authentication database name.
+    :param db_ssl: Enable SSL connection to the database (default is False).
+    """
 
     uri = create_mongodb_uri_string(db_user, db_password, db_hostname, db_port, db_authentication_db, db_ssl)
 
@@ -777,74 +939,74 @@ def delete_last_system_data_on_failure(
 
     last_system_id = get_last_system_id(system, url, db)
 
-    if 'mailing' in system:
-        for message in db['message'].find({'mailing_system_ids': last_system_id}):
-            if len(message['mailing_system_ids']) > 1:
-                message['mailing_system_ids'].remove(last_system_id)
-                db['message'].update_one({'_id': message['_id']}, {'$set': message}, upsert=False)
+    if "mailing" in system:
+        for message in db["message"].find({"mailing_system_ids": last_system_id}):
+            if len(message["mailing_system_ids"]) > 1:
+                message["mailing_system_ids"].remove(last_system_id)
+                db["message"].update_one({"_id": message["_id"]}, {"$set": message}, upsert=False)
             else:
-                db['message'].delete_one({'_id': message['_id']})
+                db["message"].delete_one({"_id": message["_id"]})
 
-    elif 'pull_request' in system:
-        for pr in db['pull_request'].find({'pull_request_system_ids': last_system_id}):
-            if len(pr['pull_request_system_ids']) > 1:
-                pr['pull_request_system_ids'].remove(last_system_id)
-                db['pull_request'].update_one({'_id': pr['_id']}, {'$set': pr}, upsert=False)
+    elif "pull_request" in system:
+        for pr in db["pull_request"].find({"pull_request_system_ids": last_system_id}):
+            if len(pr["pull_request_system_ids"]) > 1:
+                pr["pull_request_system_ids"].remove(last_system_id)
+                db["pull_request"].update_one({"_id": pr["_id"]}, {"$set": pr}, upsert=False)
             else:
-                db['pull_request_comment'].delete_many({'pull_request_id': pr['_id']})
-                db['pull_request_event'].delete_many({'pull_request_id': pr['_id']})
-                db['pull_request_file'].delete_many({'pull_request_id': pr['_id']})
-                for review in db['pull_request_review'].find({'pull_request_id': pr['_id']}):
-                    db['pull_request_review_comment'].delete_many({'pull_request_review_id': review['_id']})
-                db['pull_request_review'].delete_many({'pull_request_id': pr['_id']})
+                db["pull_request_comment"].delete_many({"pull_request_id": pr["_id"]})
+                db["pull_request_event"].delete_many({"pull_request_id": pr["_id"]})
+                db["pull_request_file"].delete_many({"pull_request_id": pr["_id"]})
+                for review in db["pull_request_review"].find({"pull_request_id": pr["_id"]}):
+                    db["pull_request_review_comment"].delete_many({"pull_request_review_id": review["_id"]})
+                db["pull_request_review"].delete_many({"pull_request_id": pr["_id"]})
 
-                db['pull_request'].delete_one({'_id': pr['_id']})
+                db["pull_request"].delete_one({"_id": pr["_id"]})
 
-    elif 'ci_travis' in  system:
-        for build in db['travis_build'].find({'ci_system_ids': last_system_id}):
-            if len(build['ci_system_ids']) > 1:
-                build['ci_system_ids'].remove(last_system_id)
-                db['travis_build'].update_one({'_id': build['_id']}, {'$set': build}, upsert=False)
+    elif "ci_travis" in system:
+        for build in db["travis_build"].find({"ci_system_ids": last_system_id}):
+            if len(build["ci_system_ids"]) > 1:
+                build["ci_system_ids"].remove(last_system_id)
+                db["travis_build"].update_one({"_id": build["_id"]}, {"$set": build}, upsert=False)
             else:
-                db['travis_job'].delete_many({'build_id': build['_id']})
-                db['travis_build'].delete_one({'_id': build['_id']})
+                db["travis_job"].delete_many({"build_id": build["_id"]})
+                db["travis_build"].delete_one({"_id": build["_id"]})
 
-    elif 'ci_system' in system:
-        for workflow in db['action_workflow'].find({'ci_system_ids': last_system_id}):
-            if len(workflow['ci_system_ids']) > 1:
-                workflow['ci_system_ids'].remove(last_system_id)
-                db['action_workflow'].update_one({'_id': workflow['_id']}, {'$set': workflow}, upsert=False)
+    elif "ci_system" in system:
+        for workflow in db["action_workflow"].find({"ci_system_ids": last_system_id}):
+            if len(workflow["ci_system_ids"]) > 1:
+                workflow["ci_system_ids"].remove(last_system_id)
+                db["action_workflow"].update_one({"_id": workflow["_id"]}, {"$set": workflow}, upsert=False)
             else:
-                for run in db['action_run'].find({'workflow_id': workflow['_id']}):
-                    db['action_job'].delete_many({'run_id': run['_id']})
-                    db['run_artifact'].delete_many({'run_id': run['_id']})
+                for run in db["action_run"].find({"workflow_id": workflow["_id"]}):
+                    db["action_job"].delete_many({"run_id": run["_id"]})
+                    db["run_artifact"].delete_many({"run_id": run["_id"]})
 
-                db['action_run'].delete_many({'workflow_id': workflow['_id']})
+                db["action_run"].delete_many({"workflow_id": workflow["_id"]})
 
-                db['action_workflow'].delete_one({'_id': workflow['_id']})
+                db["action_workflow"].delete_one({"_id": workflow["_id"]})
 
-    db[system].delete_one({'_id': last_system_id})
+    db[system].delete_one({"_id": last_system_id})
 
 
 def get_last_system_id(system, url, db=None):
     """
-       Get the last system ID for a given system and URL from a MongoDB database.
+    Get the last system ID for a given system and URL from a MongoDB database.
 
-       This function retrieves the most recent system ID associated with the specified
-       system and URL from the given MongoDB database.
+    This function retrieves the most recent system ID associated with the specified
+    system and URL from the given MongoDB database.
 
-       :param system: The name of the system.
-       :param url: The URL associated with the system.
-       :param db: The MongoDB database object (optional). If not provided, the function
-                  will use the default database.
+    :param system: The name of the system.
+    :param url: The URL associated with the system.
+    :param db: The MongoDB database object (optional). If not provided, the function
+               will use the default database.
 
-       :return: The last system ID found for the given system and URL, or None if not found.
-       """
+    :return: The last system ID found for the given system and URL, or None if not found.
+    """
 
-    last_system = db[system].find_one({'url': url}, sort=[('collection_date', -1)])
+    last_system = db[system].find_one({"url": url}, sort=[("collection_date", -1)])
 
     if last_system:
-        last_system_id = last_system['_id']
+        last_system_id = last_system["_id"]
     else:
         last_system_id = None
     return last_system_id

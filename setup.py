@@ -7,14 +7,14 @@ from setuptools import setup, find_packages
 import pycoshark
 
 setup(
-    name='pycoSHARK',
+    name="pycoSHARK",
     version=pycoshark.__version__,
-    description='Basic MongoDB Models for smartSHARK.',
-    install_requires=['mongoengine>=0.23.1', 'pymongo==3.12.2', 'python-dateutil', 'textdistance', 'networkx'],
-    author='ftrautsch',
-    author_email='fabian.trautsch@uni-goettingen.de',
-    url='https://github.com/smartshark/pycoSHARK',
-    download_url='https://github.com/smartshark/pycoSHARK/zipball/master',
+    description="Basic MongoDB Models for smartSHARK.",
+    install_requires=["mongoengine>=0.23.1", "pymongo==3.12.2", "python-dateutil", "textdistance", "networkx"],
+    author="ftrautsch",
+    author_email="fabian.trautsch@uni-goettingen.de",
+    url="https://github.com/smartshark/pycoSHARK",
+    download_url="https://github.com/smartshark/pycoSHARK/zipball/master",
     packages=find_packages(),
     zip_safe=False,
     classifiers=[
