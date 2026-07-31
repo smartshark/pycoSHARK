@@ -166,9 +166,29 @@ class TravisJob(TypedDocument):
             )
         )
 
-
 class PullRequestSystem(BaseSystem):
     pass
+
+class PullRequestCommitParentData(EmbeddedDocument):
+    """
+    PullRequestCommitParentData class.
+    Inherits from :class:`mongoengine.EmbeddedDocument`
+
+    :property commit_sha: (:class:`~mongoengine.fields.StringField`) sha of the parent commit
+    """
+
+    commit_id = ObjectIdField()
+    commit_sha = StringField(required=True)
+
+
+class PullRequestCommitData(EmbeddedDocument):
+
+    commit_id = ObjectIdField()
+    commit_sha = StringField(required=True)
+    author_id = ObjectIdField()
+    committer_id = ObjectIdField()
+    message = StringField()
+    parents = ListField(EmbeddedDocumentField(PullRequestCommitParentData))
 
 
 class PullRequest(TypedDocument):
@@ -239,7 +259,7 @@ class PullRequest(TypedDocument):
 
     state = StringField()
     labels = ListField(StringField())
-    commits = ListField()
+    commits = EmbeddedDocumentListField(PullRequestCommitData)
     source_repo_url = StringField()
     source_branch = StringField()
     source_commit_sha = StringField()
