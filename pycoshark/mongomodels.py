@@ -166,14 +166,17 @@ class TravisJob(TypedDocument):
             )
         )
 
+
 class PullRequestSystem(BaseSystem):
     pass
 
-class PullRequestCommitParentData(EmbeddedDocument):
+
+class PullRequestCommitParent(EmbeddedDocument):
     """
-    PullRequestCommitParentData class.
+    PullRequestCommitParent class.
     Inherits from :class:`mongoengine.EmbeddedDocument`
 
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.Commit` commit id if available in local VCSSystem
     :property commit_sha: (:class:`~mongoengine.fields.StringField`) sha of the parent commit
     """
 
@@ -181,14 +184,25 @@ class PullRequestCommitParentData(EmbeddedDocument):
     commit_sha = StringField(required=True)
 
 
-class PullRequestCommitData(EmbeddedDocument):
+class PullRequestCommit(EmbeddedDocument):
+    """
+    PullRequestCommit class.
+    Inherits from :class:`mongoengine.EmbeddedDocument`
+
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.Commit` commit id if available in local VCSSystem
+    :property commit_sha: (:class:`~mongoengine.fields.StringField`) sha of the commit
+    :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of the commit
+    :property committer_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` committer of the commit
+    :property message: (:class:`~mongoengine.fields.StringField`) message of the commit
+    :property parents: ((:class:`~mongoengine.fields.ListField` of :class:`~pycoshark.mongomodels.PullRequestCommitParent`)) list of parents of this commit
+    """
 
     commit_id = ObjectIdField()
     commit_sha = StringField(required=True)
     author_id = ObjectIdField()
     committer_id = ObjectIdField()
     message = StringField()
-    parents = ListField(EmbeddedDocumentField(PullRequestCommitParentData))
+    parents = ListField(EmbeddedDocumentField(PullRequestCommitParent))
 
 
 class PullRequest(TypedDocument):
@@ -259,7 +273,7 @@ class PullRequest(TypedDocument):
 
     state = StringField()
     labels = ListField(StringField())
-    commits = EmbeddedDocumentListField(PullRequestCommitData)
+    commits = EmbeddedDocumentListField(PullRequestCommit)
     source_repo_url = StringField()
     source_branch = StringField()
     source_commit_sha = StringField()
