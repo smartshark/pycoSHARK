@@ -171,6 +171,32 @@ class PullRequestSystem(BaseSystem):
     pass
 
 
+class PullRequestCommit(TypedDocument):
+    """
+    PullRequestCommit class.
+
+    Inherits from :class:`mongoengine.Document`
+
+    Index: commit_sha
+
+    :property commit_sha: (:class:`~mongoengine.fields.StringField`) sha of the commit
+    :property commit_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.Commit` commit id if available in local VCSSystem
+    :property author_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` author of the commit
+    :property committer_id: (:class:`~mongoengine.fields.ObjectIdField`) id of the :class:`~pycoshark.mongomodels.People` committer of the commit
+    :property message: (:class:`~mongoengine.fields.StringField`) commit message
+    :property parents: (:class:`~mongoengine.fields.ListField` of :class:`~mongoengine.fields.ObjectIdField`) list of parent pull request commit ids
+    """
+
+    meta = {"indexes": ["commit_sha"]}
+
+    commit_sha = StringField(required=True)
+    commit_id = ObjectIdField()
+    author_id = ObjectIdField()
+    committer_id = ObjectIdField()
+    message = StringField()
+    parents = ListField(ObjectIdField())
+
+
 class PullRequest(TypedDocument):
     """
     PullRequest class.
@@ -203,6 +229,7 @@ class PullRequest(TypedDocument):
 
     :property state: (:class:`~mongoengine.fields.StringField`) state of the pr
     :property labels: (:class:`~mongoengine.fields.ListField` of :class:`~mongoengine.fields.StringField` list of labels for this pr
+    :property commits: (:class:`~mongoengine.fields.ListField` of :class:`~mongoengine.fields.ObjectIdField` of the :class:`~pycoshark.mongomodels.PullRequestCommit`) list of pull request commit ids
 
     :property source_repo_url: (:class:`~mongoengine.fields.StringField`) source repository of this pr, can be a fork
     :property source_branch: (:class:`~mongoengine.fields.StringField`) source branch of this pr
@@ -239,7 +266,7 @@ class PullRequest(TypedDocument):
 
     state = StringField()
     labels = ListField(StringField())
-    commits = ListField()
+    commits = ListField(ObjectIdField())
     source_repo_url = StringField()
     source_branch = StringField()
     source_commit_sha = StringField()
