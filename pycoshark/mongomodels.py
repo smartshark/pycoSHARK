@@ -1195,9 +1195,9 @@ class People(TypedDocument):
     # PK: email, name
     # Shard Key: email, name
 
-    email = StringField(max_length=150, required=True, unique_with=["name"])
-    name = StringField(max_length=150, required=True)
-    username = StringField(max_length=300)
+    email = StringField(required=True, unique_with=["name"])
+    name = StringField(required=True)
+    username = StringField()
 
     def __hash__(self):
         return hash(self.name + self.email)
